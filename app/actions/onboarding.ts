@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInstructions } from "@/lib/ai/generateInstructions";
 import type { OnboardingDraft } from "@/lib/onboarding/context";
 
@@ -11,15 +12,6 @@ export interface CompleteOnboardingResult {
   demoMode?: boolean;
 }
 
-/**
- * Persists the entire onboarding draft: creates the business, marks the
- * current user as its owner, and writes hours/services/AI config/voice.
- * Called once, from the final "Go live" step.
- *
- * In demo mode (no Supabase configured) this is a no-op that just tells
- * the caller to proceed — nothing is saved, matching the rest of the
- * app's mock-data behavior.
- */
 export async function completeOnboardingAction(
   draft: OnboardingDraft
 ): Promise<CompleteOnboardingResult> {
@@ -27,12 +19,13 @@ export async function completeOnboardingAction(
     return { success: true, demoMode: true };
   }
 
-  const supabase = createClient();
+  const authClient = createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+    error: userError,
+  } = await authClient.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     return { success: false, error: "You need to be logged in to finish setup." };
   }
 
@@ -40,8 +33,18 @@ export async function completeOnboardingAction(
     return { success: false, error: "Business name is required." };
   }
 
-  // 1. Create the business.
-  const { data: business, error: businessError } = await supabase
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        "Server isn't fully configured yet (missing SUPABASE_SERVICE_ROLE_KEY). Add it in your hosting provider's environment variables and redeploy.",
+    };
+  }
+
+  const { data: business, error: businessError } = await admin
     .from("businesses")
     .insert({
       name: draft.businessName,
@@ -62,8 +65,12 @@ export async function completeOnboardingAction(
 
   const businessId = business.id as string;
 
-  // 2. Make the current user the owner.
-  const { error: memberError } = await supabase.from("business_members").insert({
+  await admin.from("users").upsert(
+    { id: user.id, email: user.email || "" },
+    { onConflict: "id" }
+  );
+
+  const { error: memberError } = await admin.from("business_members").insert({
     business_id: businessId,
     user_id: user.id,
     role: "owner",
@@ -72,7 +79,6 @@ export async function completeOnboardingAction(
     return { success: false, error: memberError.message };
   }
 
-  // 3. Business hours.
   const hoursRows = draft.hours.map((h) => ({
     business_id: businessId,
     weekday: h.weekday,
@@ -80,12 +86,11 @@ export async function completeOnboardingAction(
     open_time: h.isOpen ? h.openTime : null,
     close_time: h.isOpen ? h.closeTime : null,
   }));
-  const { error: hoursError } = await supabase.from("business_hours").insert(hoursRows);
+  const { error: hoursError } = await admin.from("business_hours").insert(hoursRows);
   if (hoursError) {
     return { success: false, error: hoursError.message };
   }
 
-  // 4. Services.
   if (draft.services.length > 0) {
     const serviceRows = draft.services
       .filter((s) => s.name.trim())
@@ -97,15 +102,13 @@ export async function completeOnboardingAction(
         duration_minutes: s.durationMinutes,
       }));
     if (serviceRows.length > 0) {
-      const { error: servicesError } = await supabase.from("services").insert(serviceRows);
+      const { error: servicesError } = await admin.from("services").insert(serviceRows);
       if (servicesError) {
         return { success: false, error: servicesError.message };
       }
     }
   }
 
-  // 5. AI receptionist — instructions are generated now, from the same
-  //    data just saved, and stored alongside the toggle config.
   const generatedInstructions = generateInstructions({
     business: { name: draft.businessName, description: draft.description },
     receptionistName: draft.receptionistName,
@@ -126,7 +129,7 @@ export async function completeOnboardingAction(
     })),
   });
 
-  const { error: aiError } = await supabase.from("ai_receptionists").insert({
+  const { error: aiError } = await admin.from("ai_receptionists").insert({
     business_id: businessId,
     name: draft.receptionistName || "Alex",
     personality: draft.personality,
@@ -138,8 +141,7 @@ export async function completeOnboardingAction(
     return { success: false, error: aiError.message };
   }
 
-  // 6. Voice config.
-  const { error: voiceError } = await supabase.from("ai_voice_configs").insert({
+  const { error: voiceError } = await admin.from("ai_voice_configs").insert({
     business_id: businessId,
     voice_id: draft.voiceId,
   });
@@ -147,9 +149,8 @@ export async function completeOnboardingAction(
     return { success: false, error: voiceError.message };
   }
 
-  // 7. Calendar integration intent (not actually connected yet).
   if (draft.calendarProvider) {
-    await supabase.from("integrations").insert({
+    await admin.from("integrations").insert({
       business_id: businessId,
       provider: draft.calendarProvider,
       status: "not_connected",
