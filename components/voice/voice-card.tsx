@@ -1,10 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Check } from "lucide-react";
+import { Play, Square, Check } from "lucide-react";
 import type { VoiceOption } from "@/lib/integrations/voice";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+
+const PREVIEW_LINE = "Hi, thanks for calling! How can I help you today?";
+
+/**
+ * Picks the closest-matching browser voice for a quick preview.
+ *
+ * This is NOT the exact voice used on real phone calls — real calls
+ * use Twilio's Amazon Polly neural voices (see
+ * lib/integrations/telephony/twilioProvider.ts), while this preview
+ * uses the browser's own built-in text-to-speech, which varies by
+ * device/OS. It's a reasonable stand-in for "does this sound roughly
+ * right" without needing a paid voice API call just to preview.
+ */
+function pickBrowserVoice(genderPresentation: "male" | "female"): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
+
+  const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
+  const pool = englishVoices.length > 0 ? englishVoices : voices;
+
+  const genderHints =
+    genderPresentation === "female"
+      ? ["female", "samantha", "victoria", "zira", "susan", "joanna", "aria", "jenny"]
+      : ["male", "daniel", "david", "mark", "alex", "fred", "guy", "matthew"];
+
+  const matched = pool.find((v) => genderHints.some((hint) => v.name.toLowerCase().includes(hint)));
+  return matched || pool[0] || null;
+}
 
 export function VoiceCard({
   voice,
@@ -16,12 +44,39 @@ export function VoiceCard({
   onSelect: () => void;
 }) {
   const [previewing, setPreviewing] = useState(false);
+  const [unsupported, setUnsupported] = useState(false);
 
   function handlePreview(e: React.MouseEvent) {
     e.stopPropagation();
-    setPreviewing(true);
-    // Placeholder only — Phase 2 wires this to a real voice provider.
-    setTimeout(() => setPreviewing(false), 1200);
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setUnsupported(true);
+      setTimeout(() => setUnsupported(false), 2000);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    if (previewing) {
+      setPreviewing(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(PREVIEW_LINE);
+    const applyVoice = () => {
+      const pickedVoice = pickBrowserVoice(voice.genderPresentation);
+      if (pickedVoice) utterance.voice = pickedVoice;
+      utterance.rate = 1;
+      utterance.onend = () => setPreviewing(false);
+      utterance.onerror = () => setPreviewing(false);
+      setPreviewing(true);
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = applyVoice;
+    } else {
+      applyVoice();
+    }
   }
 
   return (
@@ -66,8 +121,8 @@ export function VoiceCard({
         tabIndex={0}
         className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[11.5px] font-medium text-text hover:bg-paper"
       >
-        <Play className="h-3 w-3" />
-        {previewing ? "Playing preview…" : "Preview voice"}
+        {previewing ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+        {unsupported ? "Preview not supported on this browser" : previewing ? "Playing… (tap to stop)" : "Preview voice"}
       </div>
     </button>
   );
