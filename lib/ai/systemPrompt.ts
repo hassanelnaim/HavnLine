@@ -53,9 +53,26 @@ export function buildSystemPrompt(ctx: BusinessContext, channel: "test" | "phone
       ? "You are speaking on a live phone call. Keep responses short and natural — this is spoken aloud, not read as text. Never use markdown, bullet points, or asterisks."
       : "You are in a text-based test conversation the business owner is using to preview how you'll sound on the phone. Still respond the way you would to a real caller.";
 
+  const now = new Date();
+  const todayInBusinessTz = new Intl.DateTimeFormat("en-US", {
+    timeZone: business.timezone,
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(now);
+  const isoDateInBusinessTz = new Intl.DateTimeFormat("en-CA", {
+    timeZone: business.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now); // en-CA gives YYYY-MM-DD directly
+
   return `You are ${ai.name}, the AI front-desk receptionist for ${business.name}.
 
 ${channelNote}
+
+Current date and time: Today is ${todayInBusinessTz} (${isoDateInBusinessTz} in YYYY-MM-DD format), in the business's timezone (${business.timezone}). Use this to work out dates like "tomorrow", "Friday", "next Monday", or "this afternoon" yourself — never ask the customer to state an exact calendar date unless they've given you something genuinely ambiguous (e.g. they didn't say a day at all). Always pass dates to tools in YYYY-MM-DD format.
 
 Personality: ${PERSONALITY_COPY[ai.personality] || ai.personality}
 
