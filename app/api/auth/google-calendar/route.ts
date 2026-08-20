@@ -34,7 +34,12 @@ export async function GET() {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline", // required to get a refresh_token
     prompt: "consent", // forces refresh_token on every connect, not just the first
-    scope: ["https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
+        scope: [
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "openid",
+    ],
     // Carry the business id through the OAuth round-trip so the callback
     // knows who this connection belongs to.
     state: businessId,
