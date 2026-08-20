@@ -1,56 +1,78 @@
 /**
  * integrations/calendar/index.ts
  *
- * The interface a real calendar provider (Google Calendar, Microsoft
- * Outlook) will implement. For Phase 1, both providers report as
- * "not connected" and their connect() calls are stubs — no OAuth
- * happens yet. The dashboard/integrations UI and onboarding calendar
- * step are written against this interface so wiring up real OAuth
- * later doesn't require touching any UI code.
+ * CalendarProvider is the single interface the AI's check_availability
+ * and book_appointment tools talk to. Two implementations exist:
+ *
+ *  - SupabaseCalendarProvider: computes availability from
+ *    business_hours + existing `appointments` rows. Always works, no
+ *    external account needed — this is the default for every business.
+ *
+ *  - GoogleCalendarProvider: once a business connects Google Calendar
+ *    (Integrations page), this takes over — it additionally checks the
+ *    owner's real Google Calendar for busy blocks, and creates a real
+ *    event when booking.
+ *
+ * getCalendarProviderForBusiness() picks the right one automatically.
+ * Nothing else in the app should import a specific provider directly.
  */
 
-export type CalendarProviderId = "google_calendar" | "microsoft_outlook";
+export interface AvailabilitySlot {
+  start: string; // ISO 8601
+  end: string; // ISO 8601
+  label: string; // human-readable, e.g. "2:00 PM"
+}
 
-export interface CalendarConnectionStatus {
-  provider: CalendarProviderId;
-  connected: boolean;
-  accountEmail?: string;
+export interface GetAvailabilityInput {
+  businessId: string;
+  date: string; // YYYY-MM-DD, in the business's timezone
+  durationMinutes: number;
+}
+
+export interface GetAvailabilityResult {
+  open: boolean;
+  reason?: string;
+  slots: AvailabilitySlot[];
+}
+
+export interface CreateEventInput {
+  businessId: string;
+  title: string;
+  description?: string;
+  startTime: string; // ISO 8601
+  endTime: string; // ISO 8601
+}
+
+export interface CreateEventResult {
+  success: boolean;
+  eventId?: string;
+  reason?: string;
 }
 
 export interface CalendarProvider {
-  id: CalendarProviderId;
-  displayName: string;
-  getStatus(businessId: string): Promise<CalendarConnectionStatus>;
-  connect(businessId: string): Promise<{ redirectUrl?: string; error?: string }>;
-  disconnect(businessId: string): Promise<void>;
+  id: "supabase" | "google_calendar";
+  getAvailability(input: GetAvailabilityInput): Promise<GetAvailabilityResult>;
+  createEvent(input: CreateEventInput): Promise<CreateEventResult>;
+  updateEvent(eventId: string, businessId: string, input: Partial<CreateEventInput>): Promise<CreateEventResult>;
+  deleteEvent(eventId: string, businessId: string): Promise<{ success: boolean; reason?: string }>;
 }
 
-class StubCalendarProvider implements CalendarProvider {
-  constructor(public id: CalendarProviderId, public displayName: string) {}
+import { createAdminClient } from "@/lib/supabase/admin";
+import { supabaseCalendarProvider } from "./supabaseCalendarProvider";
+import { getGoogleCalendarProvider } from "./googleCalendarProvider";
 
-  async getStatus(_businessId: string): Promise<CalendarConnectionStatus> {
-    return { provider: this.id, connected: false };
-  }
+export async function getCalendarProviderForBusiness(businessId: string): Promise<CalendarProvider> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("integrations")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("provider", "google_calendar")
+    .eq("status", "connected")
+    .maybeSingle();
 
-  async connect(_businessId: string) {
-    // Phase 2: kick off real OAuth here and return a redirectUrl.
-    return { error: "not_implemented" };
+  if (data) {
+    return getGoogleCalendarProvider();
   }
-
-  async disconnect(_businessId: string) {
-    // Phase 2: revoke tokens and clear the integrations row.
-    return;
-  }
+  return supabaseCalendarProvider;
 }
-
-export const googleCalendarProvider: CalendarProvider = new StubCalendarProvider(
-  "google_calendar",
-  "Google Calendar"
-);
-
-export const microsoftOutlookProvider: CalendarProvider = new StubCalendarProvider(
-  "microsoft_outlook",
-  "Microsoft Outlook"
-);
-
-export const calendarProviders: CalendarProvider[] = [googleCalendarProvider, microsoftOutlookProvider];

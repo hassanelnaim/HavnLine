@@ -11,6 +11,7 @@ import {
   BookOpen,
   Plug,
   Settings,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/appointments", label: "Appointments", icon: CalendarClock },
   { href: "/dashboard/customers", label: "Customers", icon: Users },
   { href: "/dashboard/ai-employee", label: "AI Employee", icon: Bot },
+  { href: "/dashboard/test-receptionist", label: "Test Receptionist", icon: MessageSquareText },
   { href: "/dashboard/knowledge", label: "Knowledge", icon: BookOpen },
   { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },

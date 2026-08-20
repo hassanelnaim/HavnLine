@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Building2, UserRound, Bell, Phone, CreditCard, ShieldCheck } from "lucide-react";
 import type { DbBusiness } from "@/lib/database/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signOutAction } from "@/app/actions/auth";
+import { updateBusinessProfileAction } from "@/app/actions/business";
 
 export function SettingsClient({ business }: { business: DbBusiness }) {
   const [name, setName] = useState(business.name);
@@ -22,6 +23,23 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
   const [notifyCalls, setNotifyCalls] = useState(true);
   const [notifyEscalations, setNotifyEscalations] = useState(true);
   const [notifyDigest, setNotifyDigest] = useState(false);
+
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSaveProfile() {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateBusinessProfileAction({ name, description, address, phone });
+      if (!result.success) {
+        setError(result.error || "Could not save changes.");
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    });
+  }
 
   return (
     <Tabs defaultValue="business">
@@ -59,7 +77,17 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
                 <Input className="mt-1.5" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
             </div>
-            <Button variant="brand" size="sm">Save changes</Button>
+            {error && (
+              <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+                {error}
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <Button variant="brand" size="sm" onClick={handleSaveProfile} disabled={isPending}>
+                {isPending ? "Saving…" : "Save changes"}
+              </Button>
+              {saved && <span className="text-[12.5px] font-medium text-success">Saved ✓</span>}
+            </div>
           </CardContent>
         </Card>
       </TabsContent>

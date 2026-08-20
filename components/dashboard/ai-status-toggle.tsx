@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { toggleAiStatusAction } from "@/app/actions/business";
 
 /**
- * UI-state only for Phase 1 — flips a local boolean. Phase 2 will call a
- * server action that updates ai_receptionists.status and (once Twilio is
- * connected) actually starts/stops routing calls to the AI.
+ * Real online/offline toggle — persists to ai_receptionists.status via
+ * a server action. Once Twilio is connected, "online" is what actually
+ * makes the phone webhook treat inbound calls as answerable (a
+ * business that's toggled off could route straight to voicemail/a
+ * "currently unavailable" message in a later pass — for now this flips
+ * the status the dashboard and any future call-routing logic reads).
  */
 export function AiStatusToggle({
   initialStatus,
@@ -17,6 +21,18 @@ export function AiStatusToggle({
   compact?: boolean;
 }) {
   const [online, setOnline] = useState(initialStatus === "online");
+  const [, startTransition] = useTransition();
+
+  function handleChange(next: boolean) {
+    setOnline(next);
+    startTransition(async () => {
+      const result = await toggleAiStatusAction(next);
+      if (!result.success) {
+        // Revert on failure so the UI doesn't lie about saved state.
+        setOnline(!next);
+      }
+    });
+  }
 
   return (
     <div className="flex items-center gap-2.5">
@@ -35,7 +51,7 @@ export function AiStatusToggle({
         />
         {online ? "Online" : "Offline"}
       </span>
-      <Switch checked={online} onCheckedChange={setOnline} />
+      <Switch checked={online} onCheckedChange={handleChange} />
     </div>
   );
 }

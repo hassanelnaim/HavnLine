@@ -12,6 +12,24 @@ export interface CompleteOnboardingResult {
   demoMode?: boolean;
 }
 
+/**
+ * Persists the entire onboarding draft: creates the business, marks the
+ * current user as its owner, and writes hours/services/AI config/voice.
+ * Called once, from the final "Go live" step.
+ *
+ * Identity is verified through the normal cookie-based session (same as
+ * every other page in the app). The actual writes then go through the
+ * admin (service role) client — this sidesteps a class of bugs where a
+ * freshly-issued auth session cookie isn't reliably attached to a
+ * PostgREST write in the same request, which otherwise surfaces as a
+ * confusing "new row violates row-level security policy" error right
+ * after signup. Every other read/write in the app still goes through
+ * the normal per-request, cookie-based, RLS-protected client.
+ *
+ * In demo mode (no Supabase configured) this is a no-op that just tells
+ * the caller to proceed — nothing is saved, matching the rest of the
+ * app's mock-data behavior.
+ */
 export async function completeOnboardingAction(
   draft: OnboardingDraft
 ): Promise<CompleteOnboardingResult> {
@@ -19,6 +37,7 @@ export async function completeOnboardingAction(
     return { success: true, demoMode: true };
   }
 
+  // Step 1: verify who's calling, using the normal session-cookie client.
   const authClient = createClient();
   const {
     data: { user },
@@ -33,6 +52,9 @@ export async function completeOnboardingAction(
     return { success: false, error: "Business name is required." };
   }
 
+  // Step 2: perform the actual writes as the verified user, via the
+  // admin client, so the write path doesn't depend on the session
+  // cookie also being present/valid on the PostgREST request itself.
   let admin;
   try {
     admin = createAdminClient();
@@ -65,6 +87,8 @@ export async function completeOnboardingAction(
 
   const businessId = business.id as string;
 
+  // Ensure a matching row exists in public.users (no signup trigger creates
+  // this automatically), then make the current user the owner.
   await admin.from("users").upsert(
     { id: user.id, email: user.email || "" },
     { onConflict: "id" }
@@ -79,6 +103,7 @@ export async function completeOnboardingAction(
     return { success: false, error: memberError.message };
   }
 
+  // Business hours.
   const hoursRows = draft.hours.map((h) => ({
     business_id: businessId,
     weekday: h.weekday,
@@ -91,6 +116,7 @@ export async function completeOnboardingAction(
     return { success: false, error: hoursError.message };
   }
 
+  // Services.
   if (draft.services.length > 0) {
     const serviceRows = draft.services
       .filter((s) => s.name.trim())
@@ -109,6 +135,8 @@ export async function completeOnboardingAction(
     }
   }
 
+  // AI receptionist — instructions are generated now, from the same
+  // data just saved, and stored alongside the toggle config.
   const generatedInstructions = generateInstructions({
     business: { name: draft.businessName, description: draft.description },
     receptionistName: draft.receptionistName,
@@ -141,6 +169,7 @@ export async function completeOnboardingAction(
     return { success: false, error: aiError.message };
   }
 
+  // Voice config.
   const { error: voiceError } = await admin.from("ai_voice_configs").insert({
     business_id: businessId,
     voice_id: draft.voiceId,
@@ -149,6 +178,7 @@ export async function completeOnboardingAction(
     return { success: false, error: voiceError.message };
   }
 
+  // Calendar integration intent (not actually connected yet).
   if (draft.calendarProvider) {
     await admin.from("integrations").insert({
       business_id: businessId,

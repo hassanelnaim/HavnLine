@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Bot, Mic, Sliders, Clock, ShieldAlert } from "lucide-react";
 import type { AiResponsibilities, DbAiReceptionist, DbAiVoiceConfig, DbBusinessHours, Personality } from "@/lib/database/types";
 import { VOICE_CATALOG } from "@/lib/integrations/voice";
+import { updateAiEmployeeAction } from "@/app/actions/business";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,21 +47,38 @@ export function AiEmployeeClient({
   voice: DbAiVoiceConfig;
   hours: DbBusinessHours[];
 }) {
+  const [name, setName] = useState(ai.name);
   const [personality, setPersonality] = useState(ai.personality);
   const [responsibilities, setResponsibilities] = useState(ai.responsibilities);
   const [voiceId, setVoiceId] = useState(voice.voice_id);
   const [bookingRules, setBookingRules] = useState(ai.booking_rules || "");
   const [escalationRules, setEscalationRules] = useState(ai.escalation_rules || "");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   function toggleResponsibility(key: keyof AiResponsibilities) {
     setResponsibilities((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   function handleSave() {
-    // Phase 2: persist via a server action to ai_receptionists / ai_voice_configs.
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
+    setError(null);
+    startTransition(async () => {
+      const result = await updateAiEmployeeAction({
+        name,
+        personality,
+        responsibilities,
+        voiceId,
+        bookingRules,
+        escalationRules,
+      });
+      if (!result.success) {
+        setError(result.error || "Could not save changes.");
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    });
   }
 
   return (
@@ -67,11 +87,11 @@ export function AiEmployeeClient({
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ink font-display text-[16px] font-semibold text-white">
-              {ai.name[0]}
+              {(name || ai.name)[0]}
             </div>
             <div>
-              <div className="text-[15px] font-semibold text-ink">{ai.name}</div>
-              <div className="text-[12px] capitalize text-text-muted">{personality} · Riverside Auto &amp; Tire</div>
+              <div className="text-[15px] font-semibold text-ink">{name || ai.name}</div>
+              <div className="text-[12px] capitalize text-text-muted">{personality}</div>
             </div>
           </div>
           <AiStatusToggle initialStatus={ai.status} />
@@ -89,10 +109,14 @@ export function AiEmployeeClient({
         <TabsContent value="personality">
           <Card>
             <CardHeader>
-              <CardTitle>Personality</CardTitle>
-              <CardDescription>Sets the tone {ai.name} uses on every call.</CardDescription>
+              <CardTitle>Identity &amp; personality</CardTitle>
+              <CardDescription>The name and tone {name || ai.name} uses on every call.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-5">
+              <div>
+                <Label>Receptionist name</Label>
+                <Input className="mt-1.5 max-w-xs" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {PERSONALITIES.map((p) => (
                   <button
@@ -192,9 +216,14 @@ export function AiEmployeeClient({
         </TabsContent>
       </Tabs>
 
+      {error && (
+        <div className="mt-4 rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+          {error}
+        </div>
+      )}
       <div className="mt-6 flex items-center gap-3">
-        <Button variant="brand" onClick={handleSave}>
-          Save changes
+        <Button variant="brand" onClick={handleSave} disabled={isPending}>
+          {isPending ? "Saving…" : "Save changes"}
         </Button>
         {saved && <span className="text-[12.5px] font-medium text-success">Saved ✓</span>}
       </div>

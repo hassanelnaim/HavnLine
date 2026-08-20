@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Plus, Trash2, HelpCircle, ScrollText, Info } from "lucide-react";
 import type { DbKnowledgeItem, DbService, KnowledgeCategory } from "@/lib/database/types";
+import { addKnowledgeItemAction, deleteKnowledgeItemAction } from "@/app/actions/knowledge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,43 +29,68 @@ export function KnowledgeClient({
   const [answer, setAnswer] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [customContent, setCustomContent] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function addFaq() {
     if (!question.trim() || !answer.trim()) return;
-    const item: DbKnowledgeItem = {
-      id: "kb_" + Date.now(),
-      business_id: "biz_demo_riverside",
-      category: "faq",
-      question,
-      title: null,
-      content: answer,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setItems((prev) => [item, ...prev]);
-    setQuestion("");
-    setAnswer("");
+    setError(null);
+    startTransition(async () => {
+      const result = await addKnowledgeItemAction({ category: "faq", question, content: answer });
+      if (!result.success) {
+        setError(result.error || "Could not save that FAQ.");
+        return;
+      }
+      setItems((prev) => [
+        {
+          id: "kb_" + Date.now(),
+          business_id: "",
+          category: "faq",
+          question,
+          title: null,
+          content: answer,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setQuestion("");
+      setAnswer("");
+    });
   }
 
   function addCustom() {
     if (!customTitle.trim() || !customContent.trim()) return;
-    const item: DbKnowledgeItem = {
-      id: "kb_" + Date.now(),
-      business_id: "biz_demo_riverside",
-      category: "custom",
-      question: null,
-      title: customTitle,
-      content: customContent,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setItems((prev) => [item, ...prev]);
-    setCustomTitle("");
-    setCustomContent("");
+    setError(null);
+    startTransition(async () => {
+      const result = await addKnowledgeItemAction({ category: "custom", title: customTitle, content: customContent });
+      if (!result.success) {
+        setError(result.error || "Could not save that entry.");
+        return;
+      }
+      setItems((prev) => [
+        {
+          id: "kb_" + Date.now(),
+          business_id: "",
+          category: "custom",
+          question: null,
+          title: customTitle,
+          content: customContent,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setCustomTitle("");
+      setCustomContent("");
+    });
   }
 
   function removeItem(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));
+    startTransition(async () => {
+      await deleteKnowledgeItemAction(id);
+    });
   }
 
   const faqs = itemsByCategory(items, "faq");
@@ -74,6 +100,11 @@ export function KnowledgeClient({
 
   return (
     <Tabs defaultValue="faq">
+      {error && (
+        <div className="mb-4 rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+          {error}
+        </div>
+      )}
       <TabsList>
         <TabsTrigger value="faq"><HelpCircle className="h-3.5 w-3.5" /> FAQs</TabsTrigger>
         <TabsTrigger value="services">Services &amp; Pricing</TabsTrigger>
@@ -97,7 +128,7 @@ export function KnowledgeClient({
               <Label>Answer</Label>
               <Textarea rows={2} className="mt-1.5" placeholder='"Yes, when availability allows."' value={answer} onChange={(e) => setAnswer(e.target.value)} />
             </div>
-            <Button variant="outline" size="sm" onClick={addFaq}>
+            <Button variant="outline" size="sm" onClick={addFaq} disabled={isPending}>
               <Plus className="h-3.5 w-3.5" /> Add FAQ
             </Button>
           </CardContent>
@@ -197,7 +228,7 @@ export function KnowledgeClient({
               <Label>Details</Label>
               <Textarea rows={2} className="mt-1.5" value={customContent} onChange={(e) => setCustomContent(e.target.value)} />
             </div>
-            <Button variant="outline" size="sm" onClick={addCustom}>
+            <Button variant="outline" size="sm" onClick={addCustom} disabled={isPending}>
               <Plus className="h-3.5 w-3.5" /> Add entry
             </Button>
           </CardContent>
