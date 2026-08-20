@@ -50,7 +50,6 @@ async function getCalendarClient(businessId: string) {
     expiry_date: tokens.expiry_date,
   });
 
-  // Persist a refreshed access token back to Supabase if googleapis rotates it.
   oauth2Client.on("tokens", async (newTokens) => {
     if (!newTokens.access_token) return;
     const admin = createAdminClient();
@@ -72,14 +71,11 @@ async function getCalendarClient(businessId: string) {
 }
 
 async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabilityResult> {
-  // Start from business-hours-aware slots (same logic as the Supabase
-  // provider), then remove anything that overlaps a busy block on the
-  // connected Google Calendar.
   const baseline = await supabaseCalendarProvider.getAvailability(input);
   if (!baseline.open || baseline.slots.length === 0) return baseline;
 
   const client = await getCalendarClient(input.businessId);
-  if (!client) return baseline; // connection dropped/misconfigured — fall back gracefully
+  if (!client) return baseline;
 
   try {
     const dayStart = `${input.date}T00:00:00Z`;
@@ -106,7 +102,7 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
     return { open: true, slots: filteredSlots };
   } catch (err) {
     console.error("Google Calendar freebusy check failed:", err);
-    return baseline; // fail open to the business-hours baseline rather than blocking booking entirely
+    return baseline;
   }
 }
 
@@ -114,14 +110,22 @@ async function createEvent(input: CreateEventInput): Promise<CreateEventResult> 
   const client = await getCalendarClient(input.businessId);
   if (!client) return { success: false, reason: "Google Calendar is not connected." };
 
+  const admin = createAdminClient();
+  const { data: business } = await admin
+    .from("businesses")
+    .select("timezone")
+    .eq("id", input.businessId)
+    .single();
+  const timeZone = business?.timezone || "America/New_York";
+
   try {
     const res = await client.calendar.events.insert({
       calendarId: client.calendarId,
       requestBody: {
         summary: input.title,
         description: input.description,
-        start: { dateTime: input.startTime },
-        end: { dateTime: input.endTime },
+        start: { dateTime: input.startTime, timeZone },
+        end: { dateTime: input.endTime, timeZone },
       },
     });
     return { success: true, eventId: res.data.id || undefined };
@@ -139,6 +143,10 @@ async function updateEvent(
   const client = await getCalendarClient(businessId);
   if (!client) return { success: false, reason: "Google Calendar is not connected." };
 
+  const admin = createAdminClient();
+  const { data: business } = await admin.from("businesses").select("timezone").eq("id", businessId).single();
+  const timeZone = business?.timezone || "America/New_York";
+
   try {
     await client.calendar.events.patch({
       calendarId: client.calendarId,
@@ -146,8 +154,8 @@ async function updateEvent(
       requestBody: {
         summary: input.title,
         description: input.description,
-        start: input.startTime ? { dateTime: input.startTime } : undefined,
-        end: input.endTime ? { dateTime: input.endTime } : undefined,
+        start: input.startTime ? { dateTime: input.startTime, timeZone } : undefined,
+        end: input.endTime ? { dateTime: input.endTime, timeZone } : undefined,
       },
     });
     return { success: true, eventId };
