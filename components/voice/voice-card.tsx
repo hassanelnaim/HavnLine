@@ -8,16 +8,13 @@ import { Badge } from "@/components/ui/badge";
 
 const PREVIEW_LINE = "Hi, thanks for calling! How can I help you today?";
 
-/**
- * Picks the closest-matching browser voice for a quick preview.
- *
- * This is NOT the exact voice used on real phone calls — real calls
- * use Twilio's Amazon Polly neural voices (see
- * lib/integrations/telephony/twilioProvider.ts), while this preview
- * uses the browser's own built-in text-to-speech, which varies by
- * device/OS. It's a reasonable stand-in for "does this sound roughly
- * right" without needing a paid voice API call just to preview.
- */
+const VOICE_TUNING: Record<string, { pitch: number; rate: number }> = {
+  alex_professional: { pitch: 0.9, rate: 1.0 },
+  sarah_warm: { pitch: 1.08, rate: 0.95 },
+  james_calm: { pitch: 0.82, rate: 0.88 },
+  emma_friendly: { pitch: 1.18, rate: 1.1 },
+};
+
 function pickBrowserVoice(genderPresentation: "male" | "female"): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   if (voices.length === 0) return null;
@@ -65,7 +62,9 @@ export function VoiceCard({
     const applyVoice = () => {
       const pickedVoice = pickBrowserVoice(voice.genderPresentation);
       if (pickedVoice) utterance.voice = pickedVoice;
-      utterance.rate = 1;
+      const tuning = VOICE_TUNING[voice.id] || { pitch: 1, rate: 1 };
+      utterance.pitch = tuning.pitch;
+      utterance.rate = tuning.rate;
       utterance.onend = () => setPreviewing(false);
       utterance.onerror = () => setPreviewing(false);
       setPreviewing(true);
