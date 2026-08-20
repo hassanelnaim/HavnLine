@@ -7,9 +7,15 @@ import { toolDefinitions, executeTool, type ToolExecContext } from "./tools";
  * The only file that talks to the Anthropic API directly. Runs the
  * full tool-use loop: send messages, execute any tool Claude calls,
  * feed results back, repeat until Claude produces a final text answer.
+ *
+ * Phone calls use a faster model and a shorter max_tokens by default —
+ * spoken responses should be brief anyway, and every second of "thinking"
+ * is dead air on a live call. Test Receptionist can afford to use the
+ * stronger default model since there's no real-time pressure there.
  */
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+const PHONE_MODEL = process.env.ANTHROPIC_PHONE_MODEL || "claude-haiku-4-5-20251001";
 
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -23,15 +29,24 @@ export interface ClaudeTurnResult {
   rawMessages: Anthropic.MessageParam[];
 }
 
+export interface RunClaudeTurnOptions {
+  model?: string;
+  maxTokens?: number;
+}
+
 export async function runClaudeTurn(
   history: Anthropic.MessageParam[],
   systemPrompt: string,
-  toolCtx: ToolExecContext
+  toolCtx: ToolExecContext,
+  options: RunClaudeTurnOptions = {}
 ): Promise<ClaudeTurnResult> {
   const client = getClient();
   if (!client) {
     throw new Error("ANTHROPIC_API_KEY is not configured.");
   }
+
+  const model = options.model || (toolCtx.channel === "phone" ? PHONE_MODEL : DEFAULT_MODEL);
+  const maxTokens = options.maxTokens || (toolCtx.channel === "phone" ? 300 : 1024);
 
   const messages = [...history];
   const toolCallLog: { name: string; input: any; result: any }[] = [];
@@ -40,8 +55,8 @@ export async function runClaudeTurn(
   while (loopGuard < 8) {
     loopGuard++;
     const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
+      model,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages,
       tools: toolDefinitions as Anthropic.Tool[],

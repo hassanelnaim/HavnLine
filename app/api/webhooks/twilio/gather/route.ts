@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { handleTurn } from "@/lib/ai/receptionist";
 import { resolveTwilioVoice, validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -15,15 +14,31 @@ function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// A short, natural-sounding acknowledgment so the caller hears
+// something immediately instead of dead air while the AI actually
+// thinks (checks the calendar, looks up the customer, etc.) in the
+// background. Varied on purpose so it doesn't sound like a canned
+// "please wait" message.
+const FILLERS = [
+  "Mm-hmm, one sec.",
+  "Sure, let me check.",
+  "Okay, one moment.",
+  "Got it, hang on.",
+  "Let's see here.",
+];
+
 /**
  * POST /api/webhooks/twilio/gather
  *
- * Fires once per back-and-forth turn: Twilio transcribes the caller's
- * speech (SpeechResult) and posts it here. We run it through the same
- * handleTurn() the Test Receptionist uses, then speak the reply back
- * and open another <Gather> to keep the conversation going — this is
- * the turn-based pattern described in the setup notes (see README for
- * the real-time streaming upgrade path).
+ * Fires the instant Twilio finishes transcribing the caller's speech.
+ * This route does almost nothing — it only exists to respond FAST with
+ * a short spoken acknowledgment, then <Redirect>s to /process, which
+ * does the actual (slower) AI work. Without this split, the caller
+ * hears total silence for however long Claude + calendar/database
+ * calls take, which reads as a dead line. With it, they hear a natural
+ * "let me check" almost immediately, then the real answer a couple
+ * seconds later — the same reason a human receptionist says "one
+ * second" instead of going silent while they check something.
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
@@ -65,26 +80,11 @@ export async function POST(request: NextRequest) {
 </Response>`);
   }
 
-  const result = await handleTurn(call.business_id, callId, speechResult, "phone");
-
-  // If the AI decided to transfer, connect the caller to the business's
-  // real phone number instead of continuing the AI conversation.
-  const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
-  if (transferCall) {
-    const { data: business } = await admin.from("businesses").select("phone").eq("id", call.business_id).single();
-    if (business?.phone) {
-      return twiml(`<Response>
-  <Say voice="${voice}">One moment while I connect you.</Say>
-  <Dial>${escapeXml(business.phone)}</Dial>
-</Response>`);
-    }
-  }
+  const filler = FILLERS[Math.floor(Math.random() * FILLERS.length)];
+  const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    <Say voice="${voice}">${escapeXml(result.reply)}</Say>
-  </Gather>
-  <Say voice="${voice}">Thanks for calling. Goodbye.</Say>
-  <Hangup/>
+  <Say voice="${voice}">${escapeXml(filler)}</Say>
+  <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }
