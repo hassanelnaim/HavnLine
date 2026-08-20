@@ -10,11 +10,10 @@ import type {
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 function parseTimeToMinutes(timeStr: string): number | null {
-  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (!match) return null;
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
-
 function minutesToLabel(mins: number): string {
   let h = Math.floor(mins / 60);
   const m = mins % 60;
