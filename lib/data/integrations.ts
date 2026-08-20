@@ -11,7 +11,11 @@ const ALL_PROVIDERS: IntegrationProvider[] = [
   "voice_provider",
 ];
 
-const COMING_SOON: IntegrationProvider[] = ["twilio", "sms", "voice_provider"];
+// Only Microsoft Outlook is genuinely unbuilt right now. SMS rides on
+// whatever Twilio number is provisioned (no separate connection step),
+// and voice selection is already built into the AI Employee page — 
+// neither of those actually needs a "coming soon" state.
+const COMING_SOON: IntegrationProvider[] = ["microsoft_outlook"];
 
 function defaultRow(businessId: string, provider: IntegrationProvider): DbIntegration {
   return {
@@ -40,7 +44,24 @@ export async function getIntegrations(): Promise<DbIntegration[]> {
   // Fill in any providers that don't have a row yet (e.g. the business
   // never touched the calendar step in onboarding) with sensible defaults
   // so the Integrations page always shows all five cards.
-  return ALL_PROVIDERS.map(
+  const rows = ALL_PROVIDERS.map(
     (provider) => existing.find((i) => i.provider === provider) || defaultRow(businessId, provider)
   );
+
+  // SMS isn't its own connection — it automatically works once a Twilio
+  // number exists, since confirmations are sent from that same number.
+  const twilioRow = rows.find((r) => r.provider === "twilio");
+  const smsRow = rows.find((r) => r.provider === "sms");
+  if (smsRow) {
+    smsRow.status = twilioRow?.status === "connected" ? "connected" : "not_connected";
+  }
+
+  // Voice selection is always available — it's built into AI Employee,
+  // not a separate service to connect.
+  const voiceRow = rows.find((r) => r.provider === "voice_provider");
+  if (voiceRow) {
+    voiceRow.status = "connected";
+  }
+
+  return rows;
 }

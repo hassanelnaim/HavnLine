@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { CalendarDays, PhoneCall, MessageSquare, AudioLines } from "lucide-react";
 import type { DbIntegration, IntegrationProvider } from "@/lib/database/types";
 import { provisionPhoneNumberAction, changePhoneNumberAction } from "@/app/actions/business";
@@ -13,8 +14,8 @@ const PROVIDER_META: Record<IntegrationProvider, { name: string; description: st
   google_calendar: { name: "Google Calendar", description: "Sync availability and appointments both ways.", icon: CalendarDays },
   microsoft_outlook: { name: "Microsoft Outlook", description: "Sync availability and appointments both ways.", icon: CalendarDays },
   twilio: { name: "Phone (Twilio)", description: "Powers your GetMade phone number and inbound calls.", icon: PhoneCall },
-  sms: { name: "SMS", description: "Send appointment confirmations and reminders by text.", icon: MessageSquare },
-  voice_provider: { name: "Voice", description: "Your AI receptionist's voice on real phone calls.", icon: AudioLines },
+  sms: { name: "SMS confirmations", description: "Sent automatically from your GetMade number once you have one.", icon: MessageSquare },
+  voice_provider: { name: "Receptionist voice", description: "Pick your AI's voice from AI Employee → Voice.", icon: AudioLines },
 };
 
 export function IntegrationsClient({
@@ -144,6 +145,14 @@ export function IntegrationsClient({
                       {provisioning ? "Working…" : twilioConnected ? "Get a different number" : "Get a number"}
                     </Button>
                   </div>
+                ) : integration.provider === "voice_provider" ? (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/dashboard/ai-employee">Choose voice</Link>
+                  </Button>
+                ) : integration.provider === "sms" ? (
+                  <span className="text-[12px] text-text-faint">
+                    {integration.status === "connected" ? "Automatic" : "Needs a phone number first"}
+                  </span>
                 ) : (
                   <Button size="sm" variant="brand" disabled={integration.status === "coming_soon"}>
                     {integration.status === "coming_soon" ? "Coming soon" : "Connect"}
