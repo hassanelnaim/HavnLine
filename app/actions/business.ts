@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentBusinessId } from "@/lib/supabase/business";
 import { generateInstructions } from "@/lib/ai/generateInstructions";
-import { provisionNumber } from "@/lib/integrations/telephony/twilioProvider";
+import { provisionNumber, releaseNumber } from "@/lib/integrations/telephony/twilioProvider";
 import type { AiResponsibilities, Personality, VoiceId } from "@/lib/database/types";
 
 async function requireBusinessId(): Promise<string> {
@@ -142,7 +142,7 @@ export interface ProvisionResult extends ActionResult {
   phoneNumber?: string;
 }
 
-export async function provisionPhoneNumberAction(): Promise<ProvisionResult> {
+export async function provisionPhoneNumberAction(areaCode?: string): Promise<ProvisionResult> {
   let businessId: string;
   try {
     businessId = await requireBusinessId();
@@ -150,12 +150,70 @@ export async function provisionPhoneNumberAction(): Promise<ProvisionResult> {
     return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
   }
 
-  const result = await provisionNumber();
+  const result = await provisionNumber(areaCode);
   if (!result.success || !result.phoneNumber) {
     return { success: false, error: result.reason || "Could not provision a number." };
   }
 
   const admin = createAdminClient();
+  await admin.from("integrations").upsert(
+    {
+      business_id: businessId,
+      provider: "twilio",
+      status: "connected",
+      connected_at: new Date().toISOString(),
+      metadata: { phone_number: result.phoneNumber },
+    },
+    { onConflict: "business_id,provider" }
+  );
+
+  revalidatePath("/dashboard/integrations");
+  revalidatePath("/dashboard/settings");
+  return { success: true, phoneNumber: result.phoneNumber };
+}
+
+/**
+ * Releases the business's current GetMade number and provisions a new
+ * one, ideally in the requested area code. Use this to fix a wrong
+ * area code from a prior provisioning attempt.
+ */
+export async function changePhoneNumberAction(areaCode?: string): Promise<ProvisionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("integrations")
+    .select("metadata")
+    .eq("business_id", businessId)
+    .eq("provider", "twilio")
+    .maybeSingle();
+
+  const currentNumber = (existing?.metadata as Record<string, unknown> | null)?.phone_number as
+    | string
+    | undefined;
+
+  if (currentNumber) {
+    await releaseNumber(currentNumber);
+  }
+
+  const result = await provisionNumber(areaCode);
+  if (!result.success || !result.phoneNumber) {
+    // Old number is already released at this point — clear the row so the
+    // UI doesn't show a stale "connected" state for a number that's gone.
+    await admin
+      .from("integrations")
+      .update({ status: "not_connected", metadata: null })
+      .eq("business_id", businessId)
+      .eq("provider", "twilio");
+    revalidatePath("/dashboard/integrations");
+    return { success: false, error: result.reason || "Could not provision a new number." };
+  }
+
   await admin.from("integrations").upsert(
     {
       business_id: businessId,

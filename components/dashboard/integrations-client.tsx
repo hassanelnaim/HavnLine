@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import { CalendarDays, PhoneCall, MessageSquare, AudioLines } from "lucide-react";
 import type { DbIntegration, IntegrationProvider } from "@/lib/database/types";
-import { provisionPhoneNumberAction } from "@/app/actions/business";
+import { provisionPhoneNumberAction, changePhoneNumberAction } from "@/app/actions/business";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { IntegrationStatusBadge } from "@/components/dashboard/status-badges";
 
 const PROVIDER_META: Record<IntegrationProvider, { name: string; description: string; icon: typeof CalendarDays }> = {
@@ -26,6 +27,7 @@ export function IntegrationsClient({
   calendarError?: string;
 }) {
   const [integrations, setIntegrations] = useState(initialIntegrations);
+  const [areaCode, setAreaCode] = useState("");
   const [provisioning, setProvisioning] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -34,7 +36,7 @@ export function IntegrationsClient({
     setProvisioning(true);
     setPhoneError(null);
     startTransition(async () => {
-      const result = await provisionPhoneNumberAction();
+      const result = await provisionPhoneNumberAction(areaCode.trim() || undefined);
       setProvisioning(false);
       if (!result.success) {
         setPhoneError(result.error || "Could not provision a number.");
@@ -49,6 +51,29 @@ export function IntegrationsClient({
       );
     });
   }
+
+  function handleChangeNumber() {
+    setProvisioning(true);
+    setPhoneError(null);
+    startTransition(async () => {
+      const result = await changePhoneNumberAction(areaCode.trim() || undefined);
+      setProvisioning(false);
+      if (!result.success) {
+        setPhoneError(result.error || "Could not get a new number.");
+        return;
+      }
+      setIntegrations((prev) =>
+        prev.map((i) =>
+          i.provider === "twilio"
+            ? { ...i, status: "connected", metadata: { phone_number: result.phoneNumber } }
+            : i
+        )
+      );
+    });
+  }
+
+  const twilioIntegration = integrations.find((i) => i.provider === "twilio");
+  const twilioConnected = twilioIntegration?.status === "connected";
 
   return (
     <div>
@@ -79,8 +104,8 @@ export function IntegrationsClient({
               : null;
 
           return (
-            <Card key={integration.id}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
+            <Card key={integration.id} className={integration.provider === "twilio" ? "sm:col-span-2" : undefined}>
+              <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-paper text-text-muted">
                     <Icon className="h-4.5 w-4.5" />
@@ -103,18 +128,22 @@ export function IntegrationsClient({
                     </a>
                   </Button>
                 ) : integration.provider === "twilio" ? (
-                  <Button
-                    size="sm"
-                    variant={integration.status === "connected" ? "outline" : "brand"}
-                    onClick={handleGetNumber}
-                    disabled={provisioning || integration.status === "connected"}
-                  >
-                    {integration.status === "connected"
-                      ? "Connected"
-                      : provisioning
-                        ? "Provisioning…"
-                        : "Get a number"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Area code (e.g. 734)"
+                      value={areaCode}
+                      onChange={(e) => setAreaCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                      className="w-40"
+                    />
+                    <Button
+                      size="sm"
+                      variant={twilioConnected ? "outline" : "brand"}
+                      onClick={twilioConnected ? handleChangeNumber : handleGetNumber}
+                      disabled={provisioning}
+                    >
+                      {provisioning ? "Working…" : twilioConnected ? "Get a different number" : "Get a number"}
+                    </Button>
+                  </div>
                 ) : (
                   <Button size="sm" variant="brand" disabled={integration.status === "coming_soon"}>
                     {integration.status === "coming_soon" ? "Coming soon" : "Connect"}

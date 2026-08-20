@@ -10,6 +10,7 @@ import { toolDefinitions, executeTool, type ToolExecContext } from "./tools";
  */
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;

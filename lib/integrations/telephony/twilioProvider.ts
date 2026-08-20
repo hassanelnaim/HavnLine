@@ -92,6 +92,23 @@ export async function sendSms(to: string, from: string, body: string): Promise<{
   }
 }
 
+export async function releaseNumber(phoneNumber: string): Promise<{ success: boolean; reason?: string }> {
+  const client = getClient();
+  if (!client) return { success: false, reason: "Twilio is not configured." };
+
+  try {
+    const numbers = await client.incomingPhoneNumbers.list({ phoneNumber, limit: 1 });
+    if (numbers.length === 0) {
+      return { success: false, reason: "Number not found on this account." };
+    }
+    await client.incomingPhoneNumbers(numbers[0].sid).remove();
+    return { success: true };
+  } catch (err) {
+    console.error("Twilio number release failed:", err);
+    return { success: false, reason: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
 export function isTwilioConfigured(): boolean {
   return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 }
