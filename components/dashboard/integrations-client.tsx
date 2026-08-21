@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarDays, PhoneCall, MessageSquare, AudioLines } from "lucide-react";
+import { CalendarDays, PhoneCall, MessageSquare, AudioLines, PhoneForwarded, Copy, Check, Globe } from "lucide-react";
 import type { DbIntegration, IntegrationProvider } from "@/lib/database/types";
 import { provisionPhoneNumberAction, changePhoneNumberAction } from "@/app/actions/business";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IntegrationStatusBadge } from "@/components/dashboard/status-badges";
@@ -18,14 +18,38 @@ const PROVIDER_META: Record<IntegrationProvider, { name: string; description: st
   voice_provider: { name: "Receptionist voice", description: "Pick your AI's voice from AI Employee → Voice.", icon: AudioLines },
 };
 
+function CopyableNumber({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // Clipboard API may be blocked — the number is still visible to copy manually.
+        }
+      }}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-paper px-2.5 py-1 font-mono text-[13px] text-ink hover:bg-border-soft"
+    >
+      {value}
+      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5 text-text-faint" />}
+    </button>
+  );
+}
+
 export function IntegrationsClient({
   initialIntegrations,
   calendarConnected,
   calendarError,
+  existingBusinessNumber,
 }: {
   initialIntegrations: DbIntegration[];
   calendarConnected: boolean;
   calendarError?: string;
+  existingBusinessNumber: string | null;
 }) {
   const [integrations, setIntegrations] = useState(initialIntegrations);
   const [areaCode, setAreaCode] = useState("");
@@ -75,6 +99,9 @@ export function IntegrationsClient({
 
   const twilioIntegration = integrations.find((i) => i.provider === "twilio");
   const twilioConnected = twilioIntegration?.status === "connected";
+  const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as
+    | string
+    | undefined;
 
   return (
     <div>
@@ -163,6 +190,81 @@ export function IntegrationsClient({
           );
         })}
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-text-faint" /> Import knowledge from your website
+          </CardTitle>
+          <CardDescription>
+            Let GetMade read your website and automatically pull in FAQs, services, and business info — so
+            your AI can answer questions that were never manually typed in.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button size="sm" variant="brand" asChild>
+            <Link href="/dashboard/knowledge">Go to Knowledge → Import</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {twilioConnected && getMadeNumber && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PhoneForwarded className="h-4 w-4 text-text-faint" /> Keep your current business number
+            </CardTitle>
+            <CardDescription>
+              Customers can keep calling the number they already know — you just forward it to your GetMade
+              number behind the scenes. No need to update your website, Google listing, or business cards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="text-text-muted">Forward calls from</span>
+              <CopyableNumber value={existingBusinessNumber || "your existing business number"} />
+              <span className="text-text-muted">to your GetMade number</span>
+              <CopyableNumber value={getMadeNumber} />
+            </div>
+
+            {!existingBusinessNumber && (
+              <div className="rounded-lg border border-brand/30 bg-brand-soft px-3.5 py-2.5 text-[12.5px] text-brand-dark">
+                Add your current business phone number in Settings → Business profile first, so it shows here.
+              </div>
+            )}
+
+            <div className="rounded-lg border border-border bg-paper p-4">
+              <div className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
+                How to set up forwarding
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-text">
+                This is a setting on your <em>existing</em> phone line, not something GetMade can turn on for
+                you — every carrier and phone system does it slightly differently:
+              </p>
+              <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-text">
+                <li>
+                  <strong>Most US mobile carriers</strong> (Verizon, AT&amp;T, T-Mobile): dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*72</code> followed
+                  by your GetMade number, then call. To turn it back off later, dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*73</code>.
+                </li>
+                <li>
+                  <strong>Landline or business phone system</strong> (e.g. RingCentral, a desk phone, an office
+                  PBX): look for &quot;call forwarding&quot; in your provider&apos;s online account settings or
+                  admin panel, and enter your GetMade number there.
+                </li>
+                <li>
+                  <strong>Google Voice:</strong> Settings → Phones → add your GetMade number as a linked number.
+                </li>
+              </ul>
+              <p className="mt-3 text-[12px] text-text-faint">
+                Exact steps vary by provider — if these don&apos;t match yours, search &quot;[your carrier] call
+                forwarding&quot; or contact their support.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

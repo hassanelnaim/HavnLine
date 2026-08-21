@@ -8,6 +8,24 @@ import { Badge } from "@/components/ui/badge";
 
 const PREVIEW_LINE = "Hi, thanks for calling! How can I help you today?";
 
+/**
+ * Per-voice pitch/rate tuning for the browser TTS preview.
+ *
+ * Free browser text-to-speech (window.speechSynthesis) only exposes
+ * whatever voices are installed on the visitor's OS — often just 1-2
+ * on Windows — so relying on voice *selection* alone to differentiate
+ * our 4 GetMade voices doesn't work reliably. Layering distinct
+ * pitch/rate on top guarantees all 4 sound clearly different from each
+ * other even on a machine with limited system voices.
+ *
+ * This still won't sound as natural as the real voice used on actual
+ * phone calls (Amazon Polly neural voices via Twilio, see
+ * lib/integrations/telephony/twilioProvider.ts) — browser TTS is
+ * inherently more robotic. A closer-to-real preview would mean
+ * generating real Polly audio server-side, which needs its own AWS
+ * credentials; flagging that as a possible upgrade rather than
+ * building it silently.
+ */
 const VOICE_TUNING: Record<string, { pitch: number; rate: number }> = {
   alex_professional: { pitch: 0.9, rate: 1.0 },
   sarah_warm: { pitch: 1.08, rate: 0.95 },

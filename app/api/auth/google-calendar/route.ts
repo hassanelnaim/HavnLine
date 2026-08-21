@@ -34,7 +34,7 @@ export async function GET() {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline", // required to get a refresh_token
     prompt: "consent", // forces refresh_token on every connect, not just the first
-        scope: [
+    scope: [
       "https://www.googleapis.com/auth/calendar.events",
       "https://www.googleapis.com/auth/calendar.readonly",
       "https://www.googleapis.com/auth/userinfo.email",

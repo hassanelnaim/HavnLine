@@ -1,4 +1,5 @@
 import { getIntegrations } from "@/lib/data/integrations";
+import { getBusiness } from "@/lib/data/business";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { IntegrationsClient } from "@/components/dashboard/integrations-client";
 
@@ -9,7 +10,7 @@ export default async function IntegrationsPage({
 }: {
   searchParams: { calendar_connected?: string; calendar_error?: string };
 }) {
-  const integrations = await getIntegrations();
+  const [integrations, business] = await Promise.all([getIntegrations(), getBusiness()]);
 
   return (
     <div>
@@ -21,6 +22,7 @@ export default async function IntegrationsPage({
         initialIntegrations={integrations}
         calendarConnected={!!searchParams.calendar_connected}
         calendarError={searchParams.calendar_error}
+        existingBusinessNumber={business.phone}
       />
     </div>
   );

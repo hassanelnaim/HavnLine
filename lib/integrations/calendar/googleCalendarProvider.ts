@@ -50,6 +50,7 @@ async function getCalendarClient(businessId: string) {
     expiry_date: tokens.expiry_date,
   });
 
+  // Persist a refreshed access token back to Supabase if googleapis rotates it.
   oauth2Client.on("tokens", async (newTokens) => {
     if (!newTokens.access_token) return;
     const admin = createAdminClient();
@@ -71,11 +72,14 @@ async function getCalendarClient(businessId: string) {
 }
 
 async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabilityResult> {
+  // Start from business-hours-aware slots (same logic as the Supabase
+  // provider), then remove anything that overlaps a busy block on the
+  // connected Google Calendar.
   const baseline = await supabaseCalendarProvider.getAvailability(input);
   if (!baseline.open || baseline.slots.length === 0) return baseline;
 
   const client = await getCalendarClient(input.businessId);
-  if (!client) return baseline;
+  if (!client) return baseline; // connection dropped/misconfigured — fall back gracefully
 
   try {
     const dayStart = `${input.date}T00:00:00Z`;
@@ -102,7 +106,7 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
     return { open: true, slots: filteredSlots };
   } catch (err) {
     console.error("Google Calendar freebusy check failed:", err);
-    return baseline;
+    return baseline; // fail open to the business-hours baseline rather than blocking booking entirely
   }
 }
 
