@@ -14,12 +14,6 @@ export function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/**
- * Builds the TwiML for a completed AI turn — either a transfer to a
- * real human, or the spoken reply plus another <Gather> to keep
- * listening. Shared by both the "answered immediately" fast path and
- * the "answered after a filler" path so they behave identically.
- */
 export async function buildTurnResponseTwiml(
   businessId: string,
   callId: string,
@@ -29,11 +23,20 @@ export async function buildTurnResponseTwiml(
   const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
   if (transferCall) {
     const admin = createAdminClient();
-    const { data: business } = await admin.from("businesses").select("phone").eq("id", businessId).single();
+    const [{ data: business }, { data: twilioIntegration }] = await Promise.all([
+      admin.from("businesses").select("phone").eq("id", businessId).single(),
+      admin.from("integrations").select("metadata").eq("business_id", businessId).eq("provider", "twilio").maybeSingle(),
+    ]);
+
+    const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as
+      | string
+      | undefined;
+
     if (business?.phone) {
+      const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";
       return twiml(`<Response>
   <Say voice="${voice}">One moment while I connect you.</Say>
-  <Dial>${escapeXml(business.phone)}</Dial>
+  <Dial${callerIdAttr}>${escapeXml(business.phone)}</Dial>
 </Response>`);
     }
   }
@@ -49,15 +52,6 @@ export async function buildTurnResponseTwiml(
 </Response>`);
 }
 
-/**
- * Whether the AI's most recent turn on this call used a tool. This is
- * the real signal for "the next turn is likely to take a few seconds
- * too" — booking/availability/lookup flows tend to have several
- * tool-using turns in a row, while small talk and simple follow-ups
- * ("thanks", "okay") don't. Used to decide whether to play the "one
- * moment" filler, instead of playing it before every single response
- * regardless of whether it's actually needed.
- */
 export async function lastTurnUsedTool(callId: string): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin
