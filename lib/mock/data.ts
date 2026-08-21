@@ -52,6 +52,10 @@ export const mockBusiness: DbBusiness = {
   timezone: "America/New_York",
   onboarding_step: "complete",
   onboarding_completed_at: daysAgo(21),
+  stripe_customer_id: null,
+  stripe_subscription_id: null,
+  subscription_status: "active",
+  current_period_end: null,
   created_at: daysAgo(30),
   updated_at: daysAgo(1),
 };

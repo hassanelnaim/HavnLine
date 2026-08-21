@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveBusinessIdFromPhoneNumber, loadBusinessContext } from "@/lib/ai/context";
 import { startCall } from "@/lib/ai/receptionist";
 import { resolveTwilioVoice, validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -48,8 +49,30 @@ export async function POST(request: NextRequest) {
     return twiml(`<Response><Say>Sorry, we're having a technical issue. Please try again later.</Say><Hangup/></Response>`);
   }
 
-  const callId = await startCall(businessId, "Phone Caller", callerNumber, "phone");
+  // The backend — not the frontend toggle — is what actually decides
+  // whether this business is allowed to operate right now. This check
+  // only runs at the START of a new call, so an already-connected
+  // caller is never abruptly cut off mid-conversation by a billing
+  // state change; it just affects whether the NEXT call gets answered.
   const admin = createAdminClient();
+  const { data: billingRow } = await admin
+    .from("businesses")
+    .select("subscription_status")
+    .eq("id", businessId)
+    .single();
+
+  const isOperational =
+    !billingRow || OPERATIONAL_SUBSCRIPTION_STATUSES.includes(billingRow.subscription_status);
+
+  if (!isOperational) {
+    return twiml(`<Response><Say>Sorry, this business's line is temporarily unavailable. Please try again later.</Say><Hangup/></Response>`);
+  }
+
+  if (context.ai.status !== "online") {
+    return twiml(`<Response><Say>Thanks for calling ${escapeXml(context.business.name)}. We're currently unable to take your call — please try again later.</Say><Hangup/></Response>`);
+  }
+
+  const callId = await startCall(businessId, "Phone Caller", callerNumber, "phone");
   await admin.from("call_messages").insert({
     call_id: callId,
     role: "system",

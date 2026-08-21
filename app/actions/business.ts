@@ -99,6 +99,35 @@ export async function toggleAiStatusAction(online: boolean): Promise<ActionResul
   }
 
   const admin = createAdminClient();
+
+  // The backend, not the frontend, decides whether a business is
+  // actually allowed to go live — a business with no active
+  // subscription can't turn its receptionist on no matter what the UI
+  // shows. Turning OFF is always allowed (e.g. to stop billing usage
+  // or pause during a payment issue).
+  if (online) {
+    const { data: business } = await admin
+      .from("businesses")
+      .select("subscription_status")
+      .eq("id", businessId)
+      .single();
+
+    const status = business?.subscription_status;
+    const operational = status === "active" || status === "trialing" || status === "past_due";
+    // past_due still gets a grace period rather than an abrupt cutoff —
+    // see billing enforcement note in lib/billing/stripe.ts.
+
+    if (!operational) {
+      return {
+        success: false,
+        error:
+          status === "canceled"
+            ? "Your subscription has ended — resubscribe in Billing to turn your receptionist back on."
+            : "Subscribe in Billing to turn your receptionist on.",
+      };
+    }
+  }
+
   const { error } = await admin
     .from("ai_receptionists")
     .update({ status: online ? "online" : "offline" })

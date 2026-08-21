@@ -7,11 +7,12 @@ import { toggleAiStatusAction } from "@/app/actions/business";
 
 /**
  * Real online/offline toggle — persists to ai_receptionists.status via
- * a server action. Once Twilio is connected, "online" is what actually
- * makes the phone webhook treat inbound calls as answerable (a
- * business that's toggled off could route straight to voicemail/a
- * "currently unavailable" message in a later pass — for now this flips
- * the status the dashboard and any future call-routing logic reads).
+ * a server action. The server (not this component) is the actual
+ * authority on whether a business is allowed to go online — see the
+ * subscription check in toggleAiStatusAction. If the server rejects
+ * the request (e.g. no active subscription), the switch reverts AND
+ * surfaces exactly why, instead of silently flipping back with no
+ * explanation.
  */
 export function AiStatusToggle({
   initialStatus,
@@ -21,21 +22,24 @@ export function AiStatusToggle({
   compact?: boolean;
 }) {
   const [online, setOnline] = useState(initialStatus === "online");
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   function handleChange(next: boolean) {
     setOnline(next);
+    setError(null);
     startTransition(async () => {
       const result = await toggleAiStatusAction(next);
       if (!result.success) {
-        // Revert on failure so the UI doesn't lie about saved state.
         setOnline(!next);
+        setError(result.error || "Could not update status.");
+        setTimeout(() => setError(null), 6000);
       }
     });
   }
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="relative flex items-center gap-2.5">
       <span
         className={cn(
           "flex items-center gap-1.5 text-[12.5px] font-medium",
@@ -52,6 +56,11 @@ export function AiStatusToggle({
         {online ? "Online" : "Offline"}
       </span>
       <Switch checked={online} onCheckedChange={handleChange} />
+      {error && (
+        <div className="absolute left-0 top-full z-10 mt-2 w-56 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-[11.5px] text-danger shadow-popover">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

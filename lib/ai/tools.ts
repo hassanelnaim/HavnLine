@@ -291,6 +291,22 @@ export async function executeTool(name: string, input: any, ctx: ToolExecContext
           .eq("id", ctx.callId);
       }
 
+      // Send the confirmation text automatically — this should never
+      // depend on the AI separately deciding to call send_sms. If SMS
+      // sending fails for any reason (Twilio not connected yet, etc.),
+      // that's logged but never blocks the booking itself from succeeding.
+      let smsSent = false;
+      try {
+        const smsResult = await smsClient.send(
+          businessId,
+          input.customerPhone,
+          `You're booked at ${context.business.name} for ${service.name} on ${input.date} at ${input.time}. See you then!`
+        );
+        smsSent = smsResult.sent;
+      } catch (err) {
+        console.error("Booking confirmation SMS failed:", err);
+      }
+
       return {
         success: true,
         appointment: {
@@ -300,6 +316,7 @@ export async function executeTool(name: string, input: any, ctx: ToolExecContext
           service: appointment.service_name,
           customerName: appointment.customer_name,
         },
+        confirmationTextSent: smsSent,
       };
     }
 

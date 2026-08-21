@@ -12,6 +12,7 @@ import {
   Plug,
   Settings,
   MessageSquareText,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/test-receptionist", label: "Test Receptionist", icon: MessageSquareText },
   { href: "/dashboard/knowledge", label: "Knowledge", icon: BookOpen },
   { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

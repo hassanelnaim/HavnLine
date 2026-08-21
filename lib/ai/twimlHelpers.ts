@@ -14,6 +14,12 @@ export function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/**
+ * Builds the TwiML for a completed AI turn — either a transfer to a
+ * real human, or the spoken reply plus another <Gather> to keep
+ * listening. Shared by both the "answered immediately" fast path and
+ * the "answered after a filler" path so they behave identically.
+ */
 export async function buildTurnResponseTwiml(
   businessId: string,
   callId: string,
@@ -28,6 +34,13 @@ export async function buildTurnResponseTwiml(
       admin.from("integrations").select("metadata").eq("business_id", businessId).eq("provider", "twilio").maybeSingle(),
     ]);
 
+    // Explicitly set the caller ID on the outbound leg to the GetMade
+    // number, not the original caller's number (Twilio's default).
+    // Without this, transferring a call TO a number that's the SAME as
+    // (or forwards from) the ORIGINAL caller's own number makes it look
+    // like that phone is calling itself — which many carriers detect
+    // and route into "enter your voicemail password" remote-access mode
+    // instead of just ringing normally.
     const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as
       | string
       | undefined;
@@ -52,6 +65,15 @@ export async function buildTurnResponseTwiml(
 </Response>`);
 }
 
+/**
+ * Whether the AI's most recent turn on this call used a tool. This is
+ * the real signal for "the next turn is likely to take a few seconds
+ * too" — booking/availability/lookup flows tend to have several
+ * tool-using turns in a row, while small talk and simple follow-ups
+ * ("thanks", "okay") don't. Used to decide whether to play the "one
+ * moment" filler, instead of playing it before every single response
+ * regardless of whether it's actually needed.
+ */
 export async function lastTurnUsedTool(callId: string): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin

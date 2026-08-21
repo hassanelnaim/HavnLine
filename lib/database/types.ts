@@ -32,6 +32,10 @@ export interface DbBusiness {
   timezone: string;
   onboarding_step: OnboardingStep;
   onboarding_completed_at: ISODateTime | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: "none" | "trialing" | "active" | "past_due" | "canceled";
+  current_period_end: ISODateTime | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }
