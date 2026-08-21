@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveTwilioVoice, validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { handleTurn } from "@/lib/ai/receptionist";
+import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, resolveTwilioVoice } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-function twiml(body: string) {
-  return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>${body}`, {
-    headers: { "Content-Type": "text/xml" },
-  });
-}
-
-function escapeXml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
 // A short, natural-sounding acknowledgment so the caller hears
-// something immediately instead of dead air while the AI actually
-// thinks (checks the calendar, looks up the customer, etc.) in the
-// background. Varied on purpose so it doesn't sound like a canned
-// "please wait" message.
+// something immediately instead of dead air while the AI genuinely
+// needs a few seconds (checking the calendar, looking up a customer,
+// etc.). Only used when the last AI turn on this call actually used a
+// tool — see lastTurnUsedTool() — so it doesn't play before every
+// single response, only the ones actually likely to take a moment.
 const FILLERS = [
   "Mm-hmm, one sec.",
   "Sure, let me check.",
@@ -31,14 +24,11 @@ const FILLERS = [
  * POST /api/webhooks/twilio/gather
  *
  * Fires the instant Twilio finishes transcribing the caller's speech.
- * This route does almost nothing — it only exists to respond FAST with
- * a short spoken acknowledgment, then <Redirect>s to /process, which
- * does the actual (slower) AI work. Without this split, the caller
- * hears total silence for however long Claude + calendar/database
- * calls take, which reads as a dead line. With it, they hear a natural
- * "let me check" almost immediately, then the real answer a couple
- * seconds later — the same reason a human receptionist says "one
- * second" instead of going silent while they check something.
+ * Decides, per turn, whether the upcoming AI response is likely to
+ * take a moment (based on whether the previous turn used a tool) and
+ * either answers immediately (fast path, most casual turns) or plays a
+ * brief acknowledgment first and redirects to /process for the real
+ * work (booking/availability/lookup-heavy turns).
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
@@ -80,6 +70,16 @@ export async function POST(request: NextRequest) {
 </Response>`);
   }
 
+  const likelySlow = await lastTurnUsedTool(callId);
+
+  if (!likelySlow) {
+    // Fast path: answer directly, no filler. Most simple/casual turns
+    // land here and feel snappy since there's no extra round trip.
+    const result = await handleTurn(call.business_id, callId, speechResult, "phone");
+    return buildTurnResponseTwiml(call.business_id, callId, result, voice);
+  }
+
+  // Slow path: acknowledge immediately, then do the real work in /process.
   const filler = FILLERS[Math.floor(Math.random() * FILLERS.length)];
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 

@@ -1,27 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
-import { resolveTwilioVoice, validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { twiml, buildTurnResponseTwiml, resolveTwilioVoice } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-function twiml(body: string) {
-  return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>${body}`, {
-    headers: { "Content-Type": "text/xml" },
-  });
-}
-
-function escapeXml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 /**
  * POST /api/webhooks/twilio/process
  *
  * Reached via <Redirect> from /gather, right after the caller has
- * already heard a quick "one moment" acknowledgment. This is where the
- * actual (slower) work happens: the real Claude call, tool execution,
- * calendar checks, etc. — the same handleTurn() Test Receptionist uses.
+ * already heard a quick "one moment" acknowledgment (only for turns
+ * flagged as likely-slow — see lastTurnUsedTool() in /gather). This is
+ * where the actual (slower) work happens: the real Claude call, tool
+ * execution, calendar checks, etc. — the same handleTurn() Test
+ * Receptionist uses.
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
@@ -53,26 +46,5 @@ export async function POST(request: NextRequest) {
 
   const result = await handleTurn(call.business_id, callId, speechResult, "phone");
 
-  // If the AI decided to transfer, connect the caller to the business's
-  // real phone number instead of continuing the AI conversation.
-  const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
-  if (transferCall) {
-    const { data: business } = await admin.from("businesses").select("phone").eq("id", call.business_id).single();
-    if (business?.phone) {
-      return twiml(`<Response>
-  <Say voice="${voice}">One moment while I connect you.</Say>
-  <Dial>${escapeXml(business.phone)}</Dial>
-</Response>`);
-    }
-  }
-
-  const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
-
-  return twiml(`<Response>
-  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    <Say voice="${voice}">${escapeXml(result.reply)}</Say>
-  </Gather>
-  <Say voice="${voice}">Thanks for calling. Goodbye.</Say>
-  <Hangup/>
-</Response>`);
+  return buildTurnResponseTwiml(call.business_id, callId, result, voice);
 }
