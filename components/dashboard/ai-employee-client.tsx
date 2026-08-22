@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Bot, Mic, Sliders, Clock, ShieldAlert, Sparkles } from "lucide-react";
 import type { AiResponsibilities, DbAiReceptionist, DbAiVoiceConfig, DbBusinessHours, Personality } from "@/lib/database/types";
-import { VOICE_CATALOG } from "@/lib/integrations/voice";
 import { updateAiEmployeeAction } from "@/app/actions/business";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { VoiceCard } from "@/components/voice/voice-card";
 import { ElevenLabsVoiceBrowser } from "@/components/voice/elevenlabs-voice-browser";
 import { AiStatusToggle } from "@/components/dashboard/ai-status-toggle";
 import { cn } from "@/lib/utils";
@@ -128,62 +126,46 @@ export function AiEmployeeClient({
                 <Label>Receptionist name</Label>
                 <Input className="mt-1.5 max-w-xs" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {PERSONALITIES.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setPersonality(p.id)}
-                    className={cn(
-                      "rounded-xl border px-3 py-3 text-[13px] font-medium transition-colors",
-                      personality === p.id
-                        ? "border-brand bg-brand-soft text-brand-dark"
-                        : "border-border bg-card text-text hover:bg-paper"
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+              {customVoiceName && (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-paper px-3.5 py-2.5 text-[12.5px] text-text-muted">
+                  <Mic className="h-3.5 w-3.5 text-brand" />
+                  Voice: <span className="font-medium text-ink">{customVoiceName}</span>
+                  <span className="text-text-faint">— change this in the Voice tab</span>
+                </div>
+              )}
+              <div>
+                <Label>Tone</Label>
+                <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {PERSONALITIES.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setPersonality(p.id)}
+                      className={cn(
+                        "rounded-xl border px-3 py-3 text-[13px] font-medium transition-colors",
+                        personality === p.id
+                          ? "border-brand bg-brand-soft text-brand-dark"
+                          : "border-border bg-card text-text hover:bg-paper"
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="voice">
-          <Card className="mb-4">
-            <CardHeader>
-              <CardTitle>Voice</CardTitle>
-              <CardDescription>
-                {customVoiceRef && customVoiceName
-                  ? `Currently using your own ElevenLabs voice: ${customVoiceName}`
-                  : `Currently selected: ${VOICE_CATALOG.find((v) => v.id === voiceId)?.name}`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {VOICE_CATALOG.map((v) => (
-                  <VoiceCard
-                    key={v.id}
-                    voice={v}
-                    selected={!customVoiceRef && voiceId === v.id}
-                    onSelect={() => {
-                      setVoiceId(v.id);
-                      setCustomVoiceRef(null);
-                      setCustomVoiceName(null);
-                    }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-brand" /> Or pick your own real voice
+                <Sparkles className="h-4 w-4 text-brand" /> Voice
               </CardTitle>
               <CardDescription>
-                Browse your connected ElevenLabs voice library and use any voice you have access to — real
-                previews, not an approximation. This overrides the 4 presets above when selected.
+                {customVoiceName
+                  ? `Currently using: ${customVoiceName}`
+                  : "Browse your ElevenLabs voice library and pick a voice — real previews, the exact voice used on real calls."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -194,19 +176,6 @@ export function AiEmployeeClient({
                   setCustomVoiceName(name);
                 }}
               />
-              {customVoiceRef && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="mt-3"
-                  onClick={() => {
-                    setCustomVoiceRef(null);
-                    setCustomVoiceName(null);
-                  }}
-                >
-                  Clear selection, use a preset instead
-                </Button>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
