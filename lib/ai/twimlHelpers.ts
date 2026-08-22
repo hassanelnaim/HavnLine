@@ -6,6 +6,11 @@ import type { VoiceId } from "@/lib/database/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
+export interface VoiceSelection {
+  voiceId: VoiceId | null | undefined;
+  providerVoiceRef?: string | null;
+}
+
 export function twiml(body: string) {
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>${body}`, {
     headers: { "Content-Type": "text/xml" },
@@ -19,23 +24,23 @@ export function escapeXml(s: string) {
 /**
  * Builds the TwiML markup for a single spoken line. If ElevenLabs is
  * configured, this uses <Play> pointing at /api/tts, which generates
- * real premium-voice audio on the fly — a genuine upgrade over
- * Twilio's built-in voices. If not configured, it gracefully falls
- * back to Twilio's own <Say> with the mapped Amazon Polly voice, so
- * the app keeps working exactly as before with zero extra setup.
+ * real premium-voice audio on the fly — either the business's own
+ * hand-picked ElevenLabs voice (voice.providerVoiceRef) or one of the
+ * 4 preset defaults. If ElevenLabs isn't configured, it falls back to
+ * Twilio's own <Say> with the mapped Amazon Polly voice, so the app
+ * keeps working exactly as before with zero extra setup.
  *
  * Every place that speaks to a caller should go through this function
- * rather than building <Say>/<Play> tags directly, so the ElevenLabs
- * upgrade applies everywhere consistently.
+ * rather than building <Say>/<Play> tags directly.
  */
-export function sayLine(voiceId: VoiceId | null | undefined, text: string): string {
+export function sayLine(voice: VoiceSelection, text: string): string {
   if (isElevenLabsConfigured()) {
-    const ttsUrl = `${SITE_URL}/api/tts?text=${encodeURIComponent(text)}&voiceId=${encodeURIComponent(
-      voiceId || "alex_professional"
-    )}`;
+    const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
+    if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
+    const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;
     return `<Play>${escapeXml(ttsUrl)}</Play>`;
   }
-  const twilioVoice = resolveTwilioVoice(voiceId);
+  const twilioVoice = resolveTwilioVoice(voice.voiceId as any);
   return `<Say voice="${twilioVoice}">${escapeXml(text)}</Say>`;
 }
 
@@ -49,7 +54,7 @@ export async function buildTurnResponseTwiml(
   businessId: string,
   callId: string,
   result: HandleTurnResult,
-  voiceId: VoiceId | null | undefined
+  voice: VoiceSelection
 ): Promise<Response> {
   const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
   if (transferCall) {
@@ -59,13 +64,6 @@ export async function buildTurnResponseTwiml(
       admin.from("integrations").select("metadata").eq("business_id", businessId).eq("provider", "twilio").maybeSingle(),
     ]);
 
-    // Explicitly set the caller ID on the outbound leg to the GetMade
-    // number, not the original caller's number (Twilio's default).
-    // Without this, transferring a call TO a number that's the SAME as
-    // (or forwards from) the ORIGINAL caller's own number makes it look
-    // like that phone is calling itself — which many carriers detect
-    // and route into "enter your voicemail password" remote-access mode
-    // instead of just ringing normally.
     const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as
       | string
       | undefined;
@@ -74,7 +72,7 @@ export async function buildTurnResponseTwiml(
       const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";
       const dialStatusAction = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
       return twiml(`<Response>
-  ${sayLine(voiceId, "One moment while I connect you.")}
+  ${sayLine(voice, "One moment while I connect you.")}
   <Dial${callerIdAttr} timeout="20" action="${escapeXml(dialStatusAction)}" method="POST">${escapeXml(business.phone)}</Dial>
 </Response>`);
     }
@@ -84,9 +82,9 @@ export async function buildTurnResponseTwiml(
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    ${sayLine(voiceId, result.reply)}
+    ${sayLine(voice, result.reply)}
   </Gather>
-  ${sayLine(voiceId, "Thanks for calling. Goodbye.")}
+  ${sayLine(voice, "Thanks for calling. Goodbye.")}
   <Hangup/>
 </Response>`);
 }

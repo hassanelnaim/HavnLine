@@ -32,6 +32,7 @@ export async function updateAiEmployeeAction(input: {
   voiceId: VoiceId;
   bookingRules: string;
   escalationRules: string;
+  customVoice?: { providerVoiceRef: string; providerVoiceName: string } | null;
 }): Promise<ActionResult> {
   let businessId: string;
   try {
@@ -81,9 +82,24 @@ export async function updateAiEmployeeAction(input: {
     .eq("business_id", businessId);
   if (aiError) return { success: false, error: aiError.message };
 
-  const { error: voiceError } = await admin
-    .from("ai_voice_configs")
-    .upsert({ business_id: businessId, voice_id: input.voiceId }, { onConflict: "business_id" });
+  const { error: voiceError } = await admin.from("ai_voice_configs").upsert(
+    input.customVoice
+      ? {
+          business_id: businessId,
+          voice_id: "custom",
+          provider: "elevenlabs",
+          provider_voice_ref: input.customVoice.providerVoiceRef,
+          provider_voice_name: input.customVoice.providerVoiceName,
+        }
+      : {
+          business_id: businessId,
+          voice_id: input.voiceId,
+          provider: null,
+          provider_voice_ref: null,
+          provider_voice_name: null,
+        },
+    { onConflict: "business_id" }
+  );
   if (voiceError) return { success: false, error: voiceError.message };
 
   revalidatePath("/dashboard/ai-employee");

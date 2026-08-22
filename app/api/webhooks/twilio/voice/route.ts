@@ -82,13 +82,13 @@ export async function POST(request: NextRequest) {
 
   const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. How can I help you?`;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
-  const voiceId = context.voice?.voice_id;
+  const voice = { voiceId: context.voice?.voice_id, providerVoiceRef: context.voice?.provider_voice_ref };
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    ${sayLine(voiceId, greeting)}
+    ${sayLine(voice, greeting)}
   </Gather>
-  ${sayLine(voiceId, "Sorry, I didn't catch that. Please call back. Goodbye.")}
+  ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.")}
   <Hangup/>
 </Response>`);
 }

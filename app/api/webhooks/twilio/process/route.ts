@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
 
   const { data: voiceConfig } = await admin
     .from("ai_voice_configs")
-    .select("voice_id")
+    .select("voice_id, provider_voice_ref")
     .eq("business_id", call.business_id)
     .maybeSingle();
-  const voiceId = voiceConfig?.voice_id as any;
+  const voice = { voiceId: voiceConfig?.voice_id as any, providerVoiceRef: voiceConfig?.provider_voice_ref };
 
   const result = await handleTurn(call.business_id, callId, speechResult, "phone");
 
-  return buildTurnResponseTwiml(call.business_id, callId, result, voiceId);
+  return buildTurnResponseTwiml(call.business_id, callId, result, voice);
 }

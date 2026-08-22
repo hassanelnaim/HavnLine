@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bot, Mic, Sliders, Clock, ShieldAlert } from "lucide-react";
+import { Bot, Mic, Sliders, Clock, ShieldAlert, Sparkles } from "lucide-react";
 import type { AiResponsibilities, DbAiReceptionist, DbAiVoiceConfig, DbBusinessHours, Personality } from "@/lib/database/types";
 import { VOICE_CATALOG } from "@/lib/integrations/voice";
 import { updateAiEmployeeAction } from "@/app/actions/business";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VoiceCard } from "@/components/voice/voice-card";
+import { ElevenLabsVoiceBrowser } from "@/components/voice/elevenlabs-voice-browser";
 import { AiStatusToggle } from "@/components/dashboard/ai-status-toggle";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,12 @@ export function AiEmployeeClient({
   const [personality, setPersonality] = useState(ai.personality);
   const [responsibilities, setResponsibilities] = useState(ai.responsibilities);
   const [voiceId, setVoiceId] = useState(voice.voice_id);
+  const [customVoiceRef, setCustomVoiceRef] = useState<string | null>(
+    voice.voice_id === "custom" ? voice.provider_voice_ref : null
+  );
+  const [customVoiceName, setCustomVoiceName] = useState<string | null>(
+    voice.voice_id === "custom" ? voice.provider_voice_name : null
+  );
   const [bookingRules, setBookingRules] = useState(ai.booking_rules || "");
   const [escalationRules, setEscalationRules] = useState(ai.escalation_rules || "");
   const [saved, setSaved] = useState(false);
@@ -71,6 +78,10 @@ export function AiEmployeeClient({
         voiceId,
         bookingRules,
         escalationRules,
+        customVoice:
+          customVoiceRef && customVoiceName
+            ? { providerVoiceRef: customVoiceRef, providerVoiceName: customVoiceName }
+            : null,
       });
       if (!result.success) {
         setError(result.error || "Could not save changes.");
@@ -138,17 +149,64 @@ export function AiEmployeeClient({
         </TabsContent>
 
         <TabsContent value="voice">
-          <Card>
+          <Card className="mb-4">
             <CardHeader>
               <CardTitle>Voice</CardTitle>
-              <CardDescription>Currently selected: {VOICE_CATALOG.find((v) => v.id === voiceId)?.name}</CardDescription>
+              <CardDescription>
+                {customVoiceRef && customVoiceName
+                  ? `Currently using your own ElevenLabs voice: ${customVoiceName}`
+                  : `Currently selected: ${VOICE_CATALOG.find((v) => v.id === voiceId)?.name}`}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
                 {VOICE_CATALOG.map((v) => (
-                  <VoiceCard key={v.id} voice={v} selected={voiceId === v.id} onSelect={() => setVoiceId(v.id)} />
+                  <VoiceCard
+                    key={v.id}
+                    voice={v}
+                    selected={!customVoiceRef && voiceId === v.id}
+                    onSelect={() => {
+                      setVoiceId(v.id);
+                      setCustomVoiceRef(null);
+                      setCustomVoiceName(null);
+                    }}
+                  />
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-brand" /> Or pick your own real voice
+              </CardTitle>
+              <CardDescription>
+                Browse your connected ElevenLabs voice library and use any voice you have access to — real
+                previews, not an approximation. This overrides the 4 presets above when selected.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ElevenLabsVoiceBrowser
+                selectedVoiceRef={customVoiceRef}
+                onSelect={(id, name) => {
+                  setCustomVoiceRef(id);
+                  setCustomVoiceName(name);
+                }}
+              />
+              {customVoiceRef && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="mt-3"
+                  onClick={() => {
+                    setCustomVoiceRef(null);
+                    setCustomVoiceName(null);
+                  }}
+                >
+                  Clear selection, use a preset instead
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

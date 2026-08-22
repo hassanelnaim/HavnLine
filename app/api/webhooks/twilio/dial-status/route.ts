@@ -59,12 +59,16 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: voiceConfig } = call
-    ? await admin.from("ai_voice_configs").select("voice_id").eq("business_id", call.business_id).maybeSingle()
+    ? await admin
+        .from("ai_voice_configs")
+        .select("voice_id, provider_voice_ref")
+        .eq("business_id", call.business_id)
+        .maybeSingle()
     : { data: null };
-  const voiceId = voiceConfig?.voice_id as any;
+  const voice = { voiceId: voiceConfig?.voice_id as any, providerVoiceRef: voiceConfig?.provider_voice_ref };
 
   return twiml(`<Response>
-  ${sayLine(voiceId, "Sorry, no one's available to take your call right now, but I've made a note and someone will get back to you soon. Thanks for calling!")}
+  ${sayLine(voice, "Sorry, no one's available to take your call right now, but I've made a note and someone will get back to you soon. Thanks for calling!")}
   <Hangup/>
 </Response>`);
 }

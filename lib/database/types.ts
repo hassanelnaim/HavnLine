@@ -113,14 +113,15 @@ export interface DbAiReceptionist {
 }
 
 /** Internal voice identifiers — NOT tied to any specific provider. */
-export type VoiceId = "alex_professional" | "sarah_warm" | "james_calm" | "emma_friendly";
+export type VoiceId = "alex_professional" | "sarah_warm" | "james_calm" | "emma_friendly" | "custom";
 
 export interface DbAiVoiceConfig {
   id: UUID;
   business_id: UUID;
   voice_id: VoiceId;
   provider: string | null; // e.g. "elevenlabs" — null until connected
-  provider_voice_ref: string | null; // provider-specific voice reference, set later
+  provider_voice_ref: string | null; // real provider voice id, used when voice_id === "custom"
+  provider_voice_name: string | null; // display name, e.g. "Rachel"
   created_at: ISODateTime;
 }
 

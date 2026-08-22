@@ -28,6 +28,10 @@ const VOICE_MAP: Record<VoiceId, string> = {
   sarah_warm: "Polly.Joanna-Neural",
   james_calm: "Polly.Stephen-Neural",
   emma_friendly: "Polly.Kendra-Neural",
+  // Falls back to a sensible default if a business picked a custom
+  // ElevenLabs voice but ElevenLabs isn't configured for some reason
+  // (e.g. the key was removed) — should rarely actually be hit.
+  custom: "Polly.Matthew-Neural",
 };
 
 export function resolveTwilioVoice(voiceId: VoiceId | null | undefined): string {

@@ -156,6 +156,7 @@ export const mockVoiceConfig: DbAiVoiceConfig = {
   voice_id: "alex_professional",
   provider: null,
   provider_voice_ref: null,
+  provider_voice_name: null,
   created_at: daysAgo(21),
 };
 

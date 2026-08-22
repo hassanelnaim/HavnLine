@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
 
   const { data: voiceConfig } = await admin
     .from("ai_voice_configs")
-    .select("voice_id")
+    .select("voice_id, provider_voice_ref")
     .eq("business_id", call.business_id)
     .maybeSingle();
-  const voiceId = voiceConfig?.voice_id as any;
+  const voice = { voiceId: voiceConfig?.voice_id as any, providerVoiceRef: voiceConfig?.provider_voice_ref };
 
   const speechResult = params.SpeechResult;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
   if (!speechResult) {
     return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    ${sayLine(voiceId, "Sorry, could you say that again?")}
+    ${sayLine(voice, "Sorry, could you say that again?")}
   </Gather>
-  ${sayLine(voiceId, "I'm not able to hear you — please call back. Goodbye.")}
+  ${sayLine(voice, "I'm not able to hear you — please call back. Goodbye.")}
   <Hangup/>
 </Response>`);
   }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Fast path: answer directly, no filler. Most simple/casual turns
     // land here and feel snappy since there's no extra round trip.
     const result = await handleTurn(call.business_id, callId, speechResult, "phone");
-    return buildTurnResponseTwiml(call.business_id, callId, result, voiceId);
+    return buildTurnResponseTwiml(call.business_id, callId, result, voice);
   }
 
   // Slow path: acknowledge immediately, then do the real work in /process.
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  ${sayLine(voiceId, filler)}
+  ${sayLine(voice, filler)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }
