@@ -128,3 +128,71 @@ export async function importWebsiteKnowledgeAction(url: string): Promise<ImportW
   revalidatePath("/dashboard/knowledge");
   return { success: true, imported: rows.length };
 }
+
+// ---------------- Promotions ----------------
+
+export async function addPromotionAction(input: {
+  title: string;
+  description: string;
+  appliesTo: string;
+  startDate: string;
+  endDate: string;
+}): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("promotions").insert({
+    business_id: businessId,
+    title: input.title,
+    description: input.description,
+    applies_to: input.appliesTo || null,
+    start_date: input.startDate,
+    end_date: input.endDate,
+    is_active: true,
+  });
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/dashboard/knowledge");
+  return { success: true };
+}
+
+export async function togglePromotionAction(id: string, active: boolean): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("promotions")
+    .update({ is_active: active })
+    .eq("id", id)
+    .eq("business_id", businessId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/dashboard/knowledge");
+  return { success: true };
+}
+
+export async function deletePromotionAction(id: string): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("promotions").delete().eq("id", id).eq("business_id", businessId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/dashboard/knowledge");
+  return { success: true };
+}

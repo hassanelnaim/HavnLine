@@ -2,15 +2,24 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, HelpCircle, ScrollText, Info, Globe, Sparkles } from "lucide-react";
-import type { DbKnowledgeItem, DbService, KnowledgeCategory } from "@/lib/database/types";
-import { addKnowledgeItemAction, deleteKnowledgeItemAction, importWebsiteKnowledgeAction } from "@/app/actions/knowledge";
+import { Plus, Trash2, HelpCircle, ScrollText, Info, Globe, Sparkles, Tag } from "lucide-react";
+import type { DbKnowledgeItem, DbPromotion, DbService, KnowledgeCategory } from "@/lib/database/types";
+import {
+  addKnowledgeItemAction,
+  deleteKnowledgeItemAction,
+  importWebsiteKnowledgeAction,
+  addPromotionAction,
+  togglePromotionAction,
+  deletePromotionAction,
+} from "@/app/actions/knowledge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { formatCents } from "@/lib/format";
 
@@ -21,9 +30,11 @@ function itemsByCategory(items: DbKnowledgeItem[], category: KnowledgeCategory) 
 export function KnowledgeClient({
   initialItems,
   services,
+  initialPromotions,
 }: {
   initialItems: DbKnowledgeItem[];
   services: DbService[];
+  initialPromotions: DbPromotion[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -37,6 +48,60 @@ export function KnowledgeClient({
   const [importError, setImportError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Promotions
+  const [promotions, setPromotions] = useState(initialPromotions);
+  const [promoTitle, setPromoTitle] = useState("");
+  const [promoDescription, setPromoDescription] = useState("");
+  const [promoAppliesTo, setPromoAppliesTo] = useState("");
+  const [promoStart, setPromoStart] = useState("");
+  const [promoEnd, setPromoEnd] = useState("");
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPromotions(initialPromotions);
+  }, [initialPromotions]);
+
+  function addPromotion() {
+    if (!promoTitle.trim() || !promoDescription.trim() || !promoStart || !promoEnd) {
+      setPromoError("Fill in the title, description, and both dates.");
+      return;
+    }
+    setPromoError(null);
+    startTransition(async () => {
+      const result = await addPromotionAction({
+        title: promoTitle,
+        description: promoDescription,
+        appliesTo: promoAppliesTo,
+        startDate: promoStart,
+        endDate: promoEnd,
+      });
+      if (!result.success) {
+        setPromoError(result.error || "Could not save that promotion.");
+        return;
+      }
+      setPromoTitle("");
+      setPromoDescription("");
+      setPromoAppliesTo("");
+      setPromoStart("");
+      setPromoEnd("");
+      router.refresh();
+    });
+  }
+
+  function togglePromotion(id: string, active: boolean) {
+    setPromotions((prev) => prev.map((p) => (p.id === id ? { ...p, is_active: active } : p)));
+    startTransition(async () => {
+      await togglePromotionAction(id, active);
+    });
+  }
+
+  function removePromotion(id: string) {
+    setPromotions((prev) => prev.filter((p) => p.id !== id));
+    startTransition(async () => {
+      await deletePromotionAction(id);
+    });
+  }
 
   // Keep local state in sync whenever the server sends fresh items
   // (e.g. after a website import triggers router.refresh()).
@@ -136,6 +201,7 @@ export function KnowledgeClient({
       )}
       <TabsList className="flex-wrap">
         <TabsTrigger value="import"><Globe className="h-3.5 w-3.5" /> Import from website</TabsTrigger>
+        <TabsTrigger value="promotions"><Tag className="h-3.5 w-3.5" /> Promotions</TabsTrigger>
         <TabsTrigger value="faq"><HelpCircle className="h-3.5 w-3.5" /> FAQs</TabsTrigger>
         <TabsTrigger value="services">Services &amp; Pricing</TabsTrigger>
         <TabsTrigger value="policies"><ScrollText className="h-3.5 w-3.5" /> Policies</TabsTrigger>
@@ -186,6 +252,89 @@ export function KnowledgeClient({
             </p>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="promotions">
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-brand" /> Add a promotion
+            </CardTitle>
+            <CardDescription>
+              Your AI answers discount questions directly from this list — it will never invent a discount
+              that isn&apos;t listed here, and it won&apos;t need to escalate discount questions to you as
+              long as something relevant is active.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {promoError && (
+              <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+                {promoError}
+              </div>
+            )}
+            <div>
+              <Label>Title</Label>
+              <Input className="mt-1.5" placeholder="Fall oil change special" value={promoTitle} onChange={(e) => setPromoTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label>What it is (the AI reads this to customers)</Label>
+              <Textarea rows={2} className="mt-1.5" placeholder="15% off any oil change, no appointment restrictions." value={promoDescription} onChange={(e) => setPromoDescription(e.target.value)} />
+            </div>
+            <div>
+              <Label>Applies to (optional)</Label>
+              <Input className="mt-1.5" placeholder="Oil changes only, or leave blank for all services" value={promoAppliesTo} onChange={(e) => setPromoAppliesTo(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Start date</Label>
+                <Input type="date" className="mt-1.5" value={promoStart} onChange={(e) => setPromoStart(e.target.value)} />
+              </div>
+              <div>
+                <Label>End date</Label>
+                <Input type="date" className="mt-1.5" value={promoEnd} onChange={(e) => setPromoEnd(e.target.value)} />
+              </div>
+            </div>
+            <Button variant="brand" size="sm" onClick={addPromotion} disabled={isPending}>
+              <Plus className="h-3.5 w-3.5" /> Add promotion
+            </Button>
+          </CardContent>
+        </Card>
+
+        {promotions.length === 0 ? (
+          <EmptyState icon={Tag} title="No promotions yet" description="Add one above — your AI will apply it automatically while it's active." />
+        ) : (
+          <div className="space-y-2.5">
+            {promotions.map((p) => {
+              const today = new Date().toISOString().slice(0, 10);
+              const isCurrentlyInRange = p.start_date <= today && p.end_date >= today;
+              return (
+                <Card key={p.id}>
+                  <CardContent className="flex items-start justify-between gap-4 p-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13.5px] font-semibold text-ink">{p.title}</span>
+                        {p.is_active && isCurrentlyInRange && <Badge variant="success">Live now</Badge>}
+                        {p.is_active && !isCurrentlyInRange && <Badge variant="neutral">Scheduled</Badge>}
+                        {!p.is_active && <Badge variant="neutral">Paused</Badge>}
+                      </div>
+                      <p className="mt-1 text-[12.5px] text-text-muted">{p.description}</p>
+                      <p className="mt-1 font-mono text-[11px] text-text-faint">
+                        {p.start_date} – {p.end_date}
+                        {p.applies_to ? ` · ${p.applies_to}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Switch checked={p.is_active} onCheckedChange={(checked) => togglePromotion(p.id, checked)} />
+                      <button onClick={() => removePromotion(p.id)} className="rounded-md p-1 text-text-faint hover:bg-danger-soft hover:text-danger">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="faq">

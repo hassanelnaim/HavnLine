@@ -104,7 +104,7 @@ export const toolDefinitions = [
   },
   {
     name: "escalate_to_human",
-    description: "Escalate to a human team member. Use for refunds, discounts, complaints, angry customers, or anything outside your enabled responsibilities or that you can't confidently handle.",
+    description: "Log a message for the business to follow up on later — like leaving a voicemail, not urgent. Use for refund requests, complaints, angry customers, or anything genuinely outside your enabled responsibilities. Do NOT use this for discount questions — check the active promotions list in your instructions first and answer directly from there.",
     input_schema: {
       type: "object",
       properties: {
@@ -118,7 +118,7 @@ export const toolDefinitions = [
   },
   {
     name: "transfer_call",
-    description: "Transfer the live phone call to a human at the business. Only usable on real phone calls, not the text preview.",
+    description: "Connect the customer to a real person LIVE, right now. Only use this when the customer explicitly asks to speak with a human/person/someone else — never just because a question is hard. Only usable on real phone calls, not the text preview.",
     input_schema: {
       type: "object",
       properties: { reason: { type: "string" } },

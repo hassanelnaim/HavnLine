@@ -205,6 +205,18 @@ export interface DbKnowledgeItem {
   updated_at: ISODateTime;
 }
 
+export interface DbPromotion {
+  id: UUID;
+  business_id: UUID;
+  title: string;
+  description: string;
+  applies_to: string | null;
+  start_date: ISODate;
+  end_date: ISODate;
+  is_active: boolean;
+  created_at: ISODateTime;
+}
+
 export type IntegrationProvider =
   | "google_calendar"
   | "microsoft_outlook"

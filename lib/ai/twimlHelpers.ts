@@ -47,9 +47,10 @@ export async function buildTurnResponseTwiml(
 
     if (business?.phone) {
       const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";
+      const dialStatusAction = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
       return twiml(`<Response>
   <Say voice="${voice}">One moment while I connect you.</Say>
-  <Dial${callerIdAttr}>${escapeXml(business.phone)}</Dial>
+  <Dial${callerIdAttr} timeout="20" action="${escapeXml(dialStatusAction)}" method="POST">${escapeXml(business.phone)}</Dial>
 </Response>`);
     }
   }

@@ -5,6 +5,7 @@ import type {
   DbBusiness,
   DbBusinessHours,
   DbKnowledgeItem,
+  DbPromotion,
   DbService,
 } from "@/lib/database/types";
 
@@ -31,22 +32,38 @@ export interface BusinessContext {
   ai: DbAiReceptionist;
   voice: DbAiVoiceConfig | null;
   knowledge: DbKnowledgeItem[];
+  activePromotions: DbPromotion[];
 }
 
 export async function loadBusinessContext(businessId: string): Promise<BusinessContext | null> {
   const admin = createAdminClient();
 
-  const [businessRes, hoursRes, servicesRes, aiRes, voiceRes, knowledgeRes] = await Promise.all([
+  const [businessRes, hoursRes, servicesRes, aiRes, voiceRes, knowledgeRes, promotionsRes] = await Promise.all([
     admin.from("businesses").select("*").eq("id", businessId).single(),
     admin.from("business_hours").select("*").eq("business_id", businessId),
     admin.from("services").select("*").eq("business_id", businessId).eq("is_active", true),
     admin.from("ai_receptionists").select("*").eq("business_id", businessId).single(),
     admin.from("ai_voice_configs").select("*").eq("business_id", businessId).maybeSingle(),
     admin.from("knowledge_items").select("*").eq("business_id", businessId),
+    admin.from("promotions").select("*").eq("business_id", businessId).eq("is_active", true),
   ]);
 
   if (businessRes.error || !businessRes.data) return null;
   if (aiRes.error || !aiRes.data) return null;
+
+  // Filter to promotions actually active today, computed in the
+  // business's own timezone — not just "is_active = true" (which the
+  // owner can also use to pause one early without deleting it).
+  const todayInBusinessTz = new Intl.DateTimeFormat("en-CA", {
+    timeZone: businessRes.data.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  const activePromotions = (promotionsRes.data || []).filter(
+    (p) => p.start_date <= todayInBusinessTz && p.end_date >= todayInBusinessTz
+  );
 
   return {
     business: businessRes.data,
@@ -55,6 +72,7 @@ export async function loadBusinessContext(businessId: string): Promise<BusinessC
     ai: aiRes.data,
     voice: voiceRes.data || null,
     knowledge: knowledgeRes.data || [],
+    activePromotions,
   };
 }
 
