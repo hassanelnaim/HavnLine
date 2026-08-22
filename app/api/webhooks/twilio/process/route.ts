@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
-import { twiml, buildTurnResponseTwiml, resolveTwilioVoice } from "@/lib/ai/twimlHelpers";
+import { twiml, buildTurnResponseTwiml } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     .select("voice_id")
     .eq("business_id", call.business_id)
     .maybeSingle();
-  const voice = resolveTwilioVoice(voiceConfig?.voice_id as any);
+  const voiceId = voiceConfig?.voice_id as any;
 
   const result = await handleTurn(call.business_id, callId, speechResult, "phone");
 
-  return buildTurnResponseTwiml(call.business_id, callId, result, voice);
+  return buildTurnResponseTwiml(call.business_id, callId, result, voiceId);
 }

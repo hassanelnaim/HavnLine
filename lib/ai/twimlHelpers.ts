@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTwilioVoice } from "@/lib/integrations/telephony/twilioProvider";
+import { isElevenLabsConfigured } from "@/lib/integrations/telephony/elevenlabsProvider";
 import type { HandleTurnResult } from "@/lib/ai/receptionist";
+import type { VoiceId } from "@/lib/database/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -15,6 +17,29 @@ export function escapeXml(s: string) {
 }
 
 /**
+ * Builds the TwiML markup for a single spoken line. If ElevenLabs is
+ * configured, this uses <Play> pointing at /api/tts, which generates
+ * real premium-voice audio on the fly — a genuine upgrade over
+ * Twilio's built-in voices. If not configured, it gracefully falls
+ * back to Twilio's own <Say> with the mapped Amazon Polly voice, so
+ * the app keeps working exactly as before with zero extra setup.
+ *
+ * Every place that speaks to a caller should go through this function
+ * rather than building <Say>/<Play> tags directly, so the ElevenLabs
+ * upgrade applies everywhere consistently.
+ */
+export function sayLine(voiceId: VoiceId | null | undefined, text: string): string {
+  if (isElevenLabsConfigured()) {
+    const ttsUrl = `${SITE_URL}/api/tts?text=${encodeURIComponent(text)}&voiceId=${encodeURIComponent(
+      voiceId || "alex_professional"
+    )}`;
+    return `<Play>${escapeXml(ttsUrl)}</Play>`;
+  }
+  const twilioVoice = resolveTwilioVoice(voiceId);
+  return `<Say voice="${twilioVoice}">${escapeXml(text)}</Say>`;
+}
+
+/**
  * Builds the TwiML for a completed AI turn — either a transfer to a
  * real human, or the spoken reply plus another <Gather> to keep
  * listening. Shared by both the "answered immediately" fast path and
@@ -24,7 +49,7 @@ export async function buildTurnResponseTwiml(
   businessId: string,
   callId: string,
   result: HandleTurnResult,
-  voice: string
+  voiceId: VoiceId | null | undefined
 ): Promise<Response> {
   const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
   if (transferCall) {
@@ -49,7 +74,7 @@ export async function buildTurnResponseTwiml(
       const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";
       const dialStatusAction = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
       return twiml(`<Response>
-  <Say voice="${voice}">One moment while I connect you.</Say>
+  ${sayLine(voiceId, "One moment while I connect you.")}
   <Dial${callerIdAttr} timeout="20" action="${escapeXml(dialStatusAction)}" method="POST">${escapeXml(business.phone)}</Dial>
 </Response>`);
     }
@@ -59,9 +84,9 @@ export async function buildTurnResponseTwiml(
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    <Say voice="${voice}">${escapeXml(result.reply)}</Say>
+    ${sayLine(voiceId, result.reply)}
   </Gather>
-  <Say voice="${voice}">Thanks for calling. Goodbye.</Say>
+  ${sayLine(voiceId, "Thanks for calling. Goodbye.")}
   <Hangup/>
 </Response>`);
 }

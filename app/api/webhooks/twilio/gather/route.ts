@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
-import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, resolveTwilioVoice } from "@/lib/ai/twimlHelpers";
+import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, sayLine } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     .select("voice_id")
     .eq("business_id", call.business_id)
     .maybeSingle();
-  const voice = resolveTwilioVoice(voiceConfig?.voice_id as any);
+  const voiceId = voiceConfig?.voice_id as any;
 
   const speechResult = params.SpeechResult;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
   if (!speechResult) {
     return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    <Say voice="${voice}">Sorry, could you say that again?</Say>
+    ${sayLine(voiceId, "Sorry, could you say that again?")}
   </Gather>
-  <Say voice="${voice}">I'm not able to hear you — please call back. Goodbye.</Say>
+  ${sayLine(voiceId, "I'm not able to hear you — please call back. Goodbye.")}
   <Hangup/>
 </Response>`);
   }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Fast path: answer directly, no filler. Most simple/casual turns
     // land here and feel snappy since there's no extra round trip.
     const result = await handleTurn(call.business_id, callId, speechResult, "phone");
-    return buildTurnResponseTwiml(call.business_id, callId, result, voice);
+    return buildTurnResponseTwiml(call.business_id, callId, result, voiceId);
   }
 
   // Slow path: acknowledge immediately, then do the real work in /process.
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  <Say voice="${voice}">${escapeXml(filler)}</Say>
+  ${sayLine(voiceId, filler)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveBusinessIdFromPhoneNumber, loadBusinessContext } from "@/lib/ai/context";
 import { startCall } from "@/lib/ai/receptionist";
-import { resolveTwilioVoice, validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
+import { sayLine } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -79,15 +80,15 @@ export async function POST(request: NextRequest) {
     content: `Inbound call from ${callerNumber} to ${dialedNumber}`,
   });
 
-  const voice = resolveTwilioVoice(context.voice?.voice_id);
   const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. How can I help you?`;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
+  const voiceId = context.voice?.voice_id;
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
-    <Say voice="${voice}">${escapeXml(greeting)}</Say>
+    ${sayLine(voiceId, greeting)}
   </Gather>
-  <Say voice="${voice}">Sorry, I didn't catch that. Please call back. Goodbye.</Say>
+  ${sayLine(voiceId, "Sorry, I didn't catch that. Please call back. Goodbye.")}
   <Hangup/>
 </Response>`);
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { validateTwilioSignature, resolveTwilioVoice } from "@/lib/integrations/telephony/twilioProvider";
-import { twiml, escapeXml } from "@/lib/ai/twimlHelpers";
+import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
+import { twiml, sayLine } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -61,10 +61,10 @@ export async function POST(request: NextRequest) {
   const { data: voiceConfig } = call
     ? await admin.from("ai_voice_configs").select("voice_id").eq("business_id", call.business_id).maybeSingle()
     : { data: null };
-  const voice = resolveTwilioVoice(voiceConfig?.voice_id as any);
+  const voiceId = voiceConfig?.voice_id as any;
 
   return twiml(`<Response>
-  <Say voice="${voice}">Sorry, no one's available to take your call right now, but I've made a note and someone will get back to you soon. Thanks for calling!</Say>
+  ${sayLine(voiceId, "Sorry, no one's available to take your call right now, but I've made a note and someone will get back to you soon. Thanks for calling!")}
   <Hangup/>
 </Response>`);
 }
