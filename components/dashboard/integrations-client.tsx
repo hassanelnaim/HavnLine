@@ -13,8 +13,8 @@ import { IntegrationStatusBadge } from "@/components/dashboard/status-badges";
 const PROVIDER_META: Record<IntegrationProvider, { name: string; description: string; icon: typeof CalendarDays }> = {
   google_calendar: { name: "Google Calendar", description: "Sync availability and appointments both ways.", icon: CalendarDays },
   microsoft_outlook: { name: "Microsoft Outlook", description: "Sync availability and appointments both ways.", icon: CalendarDays },
-  twilio: { name: "Phone (Twilio)", description: "Powers your GetMade phone number and inbound calls.", icon: PhoneCall },
-  sms: { name: "SMS confirmations", description: "Sent automatically from your GetMade number once you have one.", icon: MessageSquare },
+  twilio: { name: "Phone (Twilio)", description: "Powers your HavnLine phone number and inbound calls.", icon: PhoneCall },
+  sms: { name: "SMS confirmations", description: "Sent automatically from your HavnLine number once you have one.", icon: MessageSquare },
   voice_provider: { name: "Receptionist voice", description: "Pick your AI's voice from AI Employee → Voice.", icon: AudioLines },
 };
 
@@ -197,7 +197,7 @@ export function IntegrationsClient({
             <Globe className="h-4 w-4 text-text-faint" /> Import knowledge from your website
           </CardTitle>
           <CardDescription>
-            Let GetMade read your website and automatically pull in FAQs, services, and business info — so
+            Let HavnLine read your website and automatically pull in FAQs, services, and business info — so
             your AI can answer questions that were never manually typed in.
           </CardDescription>
         </CardHeader>
@@ -215,7 +215,7 @@ export function IntegrationsClient({
               <PhoneForwarded className="h-4 w-4 text-text-faint" /> Keep your current business number
             </CardTitle>
             <CardDescription>
-              Customers can keep calling the number they already know — you just forward it to your GetMade
+              Customers can keep calling the number they already know — you just forward it to your HavnLine
               number behind the scenes. No need to update your website, Google listing, or business cards.
             </CardDescription>
           </CardHeader>
@@ -223,7 +223,7 @@ export function IntegrationsClient({
             <div className="flex flex-wrap items-center gap-2 text-[13px]">
               <span className="text-text-muted">Forward calls from</span>
               <CopyableNumber value={existingBusinessNumber || "your existing business number"} />
-              <span className="text-text-muted">to your GetMade number</span>
+              <span className="text-text-muted">to your HavnLine number</span>
               <CopyableNumber value={getMadeNumber} />
             </div>
 
@@ -238,23 +238,23 @@ export function IntegrationsClient({
                 How to set up forwarding
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-text">
-                This is a setting on your <em>existing</em> phone line, not something GetMade can turn on for
+                This is a setting on your <em>existing</em> phone line, not something HavnLine can turn on for
                 you — every carrier and phone system does it slightly differently:
               </p>
               <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-text">
                 <li>
                   <strong>Most US mobile carriers</strong> (Verizon, AT&amp;T, T-Mobile): dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*72</code> followed
-                  by your GetMade number, then call. To turn it back off later, dial{" "}
+                  by your HavnLine number, then call. To turn it back off later, dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*73</code>.
                 </li>
                 <li>
                   <strong>Landline or business phone system</strong> (e.g. RingCentral, a desk phone, an office
                   PBX): look for &quot;call forwarding&quot; in your provider&apos;s online account settings or
-                  admin panel, and enter your GetMade number there.
+                  admin panel, and enter your HavnLine number there.
                 </li>
                 <li>
-                  <strong>Google Voice:</strong> Settings → Phones → add your GetMade number as a linked number.
+                  <strong>Google Voice:</strong> Settings → Phones → add your HavnLine number as a linked number.
                 </li>
               </ul>
               <p className="mt-3 text-[12px] text-text-faint">

@@ -7,6 +7,7 @@ import { SidebarNav } from "@/components/layout/sidebar";
 import { AiStatusToggle } from "@/components/dashboard/ai-status-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { signOutAction } from "@/app/actions/auth";
+import { LogoMark, LogoWordmark } from "@/components/brand/logo";
 
 export function DashboardShell({
   businessName,
@@ -27,11 +28,9 @@ export function DashboardShell({
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen flex-col bg-ink py-5 lg:flex">
         <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand font-display text-[13px] font-semibold text-white">
-            G
-          </div>
+          <LogoMark className="h-8 w-8" />
           <div>
-            <div className="font-display text-[14px] font-semibold text-white">GetMade</div>
+            <LogoWordmark tone="light" className="text-[14px]" />
             <div className="truncate text-[11px] text-[#8A90A0]">{businessName}</div>
           </div>
         </Link>
@@ -54,10 +53,8 @@ export function DashboardShell({
           <aside className="absolute left-0 top-0 flex h-full w-64 flex-col bg-ink py-5">
             <div className="mb-6 flex items-center justify-between px-4">
               <Link href="/dashboard" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand font-display text-[13px] font-semibold text-white">
-                  G
-                </div>
-                <span className="font-display text-[14px] font-semibold text-white">GetMade</span>
+                <LogoMark className="h-8 w-8" />
+                <LogoWordmark tone="light" className="text-[14px]" />
               </Link>
               <button onClick={() => setMobileOpen(false)} className="text-[#8A90A0]">
                 <X className="h-5 w-5" />

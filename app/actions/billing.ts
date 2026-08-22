@@ -42,7 +42,7 @@ export async function startCheckoutAction(): Promise<BillingActionResult> {
 
   const result = await createCheckoutSession({
     businessId: auth.businessId,
-    businessName: business?.name || "GetMade business",
+    businessName: business?.name || "HavnLine business",
     customerEmail: auth.email,
     existingStripeCustomerId: business?.stripe_customer_id || null,
     successUrl: `${SITE_URL}/dashboard/billing?checkout=success`,

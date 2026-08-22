@@ -13,7 +13,7 @@ export default async function BillingPage({
 
   return (
     <div>
-      <PageHeader title="Billing" description="Manage your GetMade subscription." />
+      <PageHeader title="Billing" description="Manage your HavnLine subscription." />
       <BillingClient billing={billing} checkoutResult={searchParams.checkout} />
     </div>
   );

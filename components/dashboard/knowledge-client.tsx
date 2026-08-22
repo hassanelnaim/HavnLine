@@ -216,7 +216,7 @@ export function KnowledgeClient({
               <Sparkles className="h-4 w-4 text-brand" /> Import from your website
             </CardTitle>
             <CardDescription>
-              Paste your website URL and GetMade will read it and automatically pull out real FAQs, services,
+              Paste your website URL and HavnLine will read it and automatically pull out real FAQs, services,
               and business info — so your AI can answer questions that were never manually typed in here. It
               only adds what&apos;s actually written on your site, never invented.
             </CardDescription>

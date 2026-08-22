@@ -21,7 +21,7 @@ function escapeXml(s: string) {
 /**
  * POST /api/webhooks/twilio/voice
  *
- * Twilio calls this the moment someone dials a GetMade number. We
+ * Twilio calls this the moment someone dials a HavnLine number. We
  * resolve which business owns that number, greet the caller by name,
  * and open a <Gather> to listen for their first sentence — which gets
  * POSTed to /gather, where the real AI turn happens.

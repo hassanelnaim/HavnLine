@@ -81,7 +81,7 @@ export function BillingClient({
               <CreditCard className="h-4.5 w-4.5" />
             </div>
             <div>
-              <CardTitle>GetMade — Full Access</CardTitle>
+              <CardTitle>HavnLine — Full Access</CardTitle>
               <CardDescription>Everything included — one plan, no tiers or usage limits.</CardDescription>
             </div>
           </div>

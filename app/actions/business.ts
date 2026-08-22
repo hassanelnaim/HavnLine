@@ -218,7 +218,7 @@ export async function provisionPhoneNumberAction(areaCode?: string): Promise<Pro
 }
 
 /**
- * Releases the business's current GetMade number and provisions a new
+ * Releases the business's current HavnLine number and provisions a new
  * one, ideally in the requested area code. Use this to fix a wrong
  * area code from a prior provisioning attempt.
  */

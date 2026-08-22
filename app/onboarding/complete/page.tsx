@@ -50,7 +50,7 @@ export default function CompleteStep() {
         {draft.businessName || "You"}&apos;re almost live
       </h1>
       <p className="mt-1.5 text-[13.5px] text-text-muted">
-        Get a GetMade phone number, then turn your receptionist on.
+        Get a HavnLine phone number, then turn your receptionist on.
       </p>
 
       <Card className="mt-8 p-5">
@@ -60,7 +60,7 @@ export default function CompleteStep() {
               <Phone className="h-4.5 w-4.5" />
             </div>
             <div>
-              <div className="text-[13.5px] font-semibold text-ink">GetMade phone number</div>
+              <div className="text-[13.5px] font-semibold text-ink">HavnLine phone number</div>
               <div className="text-[12px] text-text-muted">
                 {provisioned ? "(845) 555-0100 — demo number" : "Not provisioned yet"}
               </div>

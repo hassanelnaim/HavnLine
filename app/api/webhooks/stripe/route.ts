@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           // current_period_end lives per subscription item in this API
           // version, not on the subscription object itself — use the
           // first item's period end (a single-item subscription, which
-          // is all GetMade creates, only ever has one).
+          // is all HavnLine creates, only ever has one).
           const periodEndUnix = subscription.items.data[0]?.current_period_end;
           await admin
             .from("businesses")

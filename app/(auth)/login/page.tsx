@@ -41,7 +41,7 @@ export default function LoginPage({
           </Button>
         </form>
         <p className="mt-5 text-center text-[13px] text-text-muted">
-          New to GetMade?{" "}
+          New to HavnLine?{" "}
           <Link href="/signup" className="font-medium text-brand hover:underline">
             Create an account
           </Link>

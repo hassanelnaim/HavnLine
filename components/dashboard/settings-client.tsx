@@ -149,7 +149,7 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
         <Card>
           <CardHeader>
             <CardTitle>Phone</CardTitle>
-            <CardDescription>Your GetMade number and call forwarding.</CardDescription>
+            <CardDescription>Your HavnLine number and call forwarding.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-dashed border-border bg-paper px-4 py-6 text-center text-[13px] text-text-muted">

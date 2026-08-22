@@ -14,7 +14,7 @@ const PREVIEW_LINE = "Hi, thanks for calling! How can I help you today?";
  * Free browser text-to-speech (window.speechSynthesis) only exposes
  * whatever voices are installed on the visitor's OS — often just 1-2
  * on Windows — so relying on voice *selection* alone to differentiate
- * our 4 GetMade voices doesn't work reliably. Layering distinct
+ * our 4 HavnLine voices doesn't work reliably. Layering distinct
  * pitch/rate on top guarantees all 4 sound clearly different from each
  * other even on a machine with limited system voices.
  *

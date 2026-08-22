@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, Phone, Calendar, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 
 const STEPS = [
-  { label: "Business information", detail: "Tell GetMade who you are and what you offer." },
+  { label: "Business information", detail: "Tell HavnLine who you are and what you offer." },
   { label: "AI personality", detail: "Pick a name, tone, and what it's allowed to do." },
   { label: "Go live", detail: "Get a phone number and turn your receptionist on." },
 ];
@@ -12,12 +13,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-paper">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink font-display text-[13px] font-semibold text-white">
-            G
-          </div>
-          <span className="font-display text-[16px] font-semibold text-ink">GetMade</span>
-        </div>
+        <Logo />
         <nav className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/login">Log in</Link>
@@ -41,7 +37,7 @@ export default function LandingPage() {
               An AI receptionist that actually knows your business.
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-text-muted">
-              GetMade answers your phone, books appointments, and hands off anything it
+              HavnLine answers your phone, books appointments, and hands off anything it
               shouldn&apos;t handle alone — so every caller gets a real answer, and nothing
               falls through the cracks.
             </p>
@@ -119,14 +115,14 @@ export default function LandingPage() {
           </div>
           <p className="text-[13.5px] text-text-muted">
             No APIs, no prompts, no webhooks to configure. You describe your business in
-            plain language — GetMade handles the technical part behind the scenes.
+            plain language — HavnLine handles the technical part behind the scenes.
           </p>
         </section>
       </main>
 
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-[12px] text-text-faint">
-          <span>© {new Date().getFullYear()} GetMade</span>
+          <span>© {new Date().getFullYear()} HavnLine</span>
           <span>Front desk, automated.</span>
         </div>
       </footer>

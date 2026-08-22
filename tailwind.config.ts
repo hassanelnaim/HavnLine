@@ -10,49 +10,53 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // HavnLine brand palette
         ink: {
-          DEFAULT: "#12161D",
-          soft: "#1B212B",
-          line: "#2A3240",
+          DEFAULT: "#0B1220",
+          soft: "#131C30",
+          line: "#25324A",
         },
-        paper: "#F7F5F0",
+        paper: "#F6F7FA",
         card: "#FFFFFF",
         border: {
-          DEFAULT: "#E6E1D6",
-          soft: "#EEEAE0",
+          DEFAULT: "#E5E7EB",
+          soft: "#EEF0F3",
         },
         text: {
-          DEFAULT: "#1A1F27",
-          muted: "#6B7280",
-          faint: "#9CA3AF",
+          DEFAULT: "#0B1220",
+          muted: "#5B6472",
+          faint: "#9AA3B2",
         },
         brand: {
-          DEFAULT: "#AD7A2E",
-          dark: "#8F6524",
-          soft: "#F3E7D2",
-          50: "#FBF6EC",
+          DEFAULT: "#2563EB",
+          dark: "#1D4ED8",
+          light: "#60A5FA",
+          soft: "#E9F0FE",
+          50: "#F3F7FF",
         },
         success: {
-          DEFAULT: "#2F9E6E",
-          soft: "#E1F2EA",
+          DEFAULT: "#16A34A",
+          soft: "#E5F6EA",
         },
         danger: {
-          DEFAULT: "#C6564A",
-          soft: "#FBE8E5",
+          DEFAULT: "#DC2626",
+          soft: "#FBE9E8",
         },
         info: {
-          DEFAULT: "#3B6E99",
-          soft: "#E7EFF5",
+          DEFAULT: "#60A5FA",
+          soft: "#EAF2FE",
         },
       },
       fontFamily: {
         display: [
-          "Fraunces",
-          "Georgia",
-          "'Iowan Old Style'",
-          "'Palatino Linotype'",
-          "Palatino",
-          "serif",
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
         ],
         sans: [
           "Inter",
@@ -78,14 +82,14 @@ const config: Config = {
         "2xl": "1.1rem",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(18, 22, 29, 0.04), 0 1px 12px rgba(18, 22, 29, 0.03)",
-        popover: "0 8px 30px rgba(18, 22, 29, 0.12)",
+        card: "0 1px 2px rgba(11, 18, 32, 0.04), 0 1px 12px rgba(11, 18, 32, 0.04)",
+        popover: "0 8px 30px rgba(11, 18, 32, 0.14)",
       },
       keyframes: {
         "pulse-ring": {
-          "0%": { boxShadow: "0 0 0 0 rgba(47, 158, 110, 0.55)" },
-          "70%": { boxShadow: "0 0 0 8px rgba(47, 158, 110, 0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(47, 158, 110, 0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(22, 163, 74, 0.55)" },
+          "70%": { boxShadow: "0 0 0 8px rgba(22, 163, 74, 0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(22, 163, 74, 0)" },
         },
         "fade-up": {
           "0%": { opacity: "0", transform: "translateY(6px)" },
