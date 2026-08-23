@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { AppointmentStatusBadge } from "@/components/dashboard/status-badges";
 import { Badge } from "@/components/ui/badge";
+import { formatDateWithWeekday } from "@/lib/format";
 
 export default async function AppointmentsPage() {
   const appointments = await getAppointments();
@@ -40,7 +41,7 @@ export default async function AppointmentsPage() {
             <TableBody>
               {appointments.map((apt) => (
                 <TableRow key={apt.id}>
-                  <TableCell className="font-mono">{apt.date}</TableCell>
+                  <TableCell className="font-mono">{formatDateWithWeekday(apt.date)}</TableCell>
                   <TableCell className="font-mono">{apt.time}</TableCell>
                   <TableCell className="font-medium text-text">{apt.customer_name}</TableCell>
                   <TableCell className="font-mono text-text-muted">{apt.phone}</TableCell>
