@@ -39,6 +39,13 @@ export default function SignupPage({
             Create account
           </Button>
         </form>
+        <p className="mt-4 text-center text-[11.5px] text-text-faint">
+          By creating an account, you agree to our{" "}
+          <Link href="/policies" className="underline hover:text-text-muted">
+            Terms and Privacy Policy
+          </Link>
+          .
+        </p>
         <p className="mt-5 text-center text-[13px] text-text-muted">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-brand hover:underline">

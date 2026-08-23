@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
-import { Building2, UserRound, Bell, Phone, CreditCard, ShieldCheck } from "lucide-react";
-import type { DbBusiness } from "@/lib/database/types";
+import { Building2, UserRound, Bell, Clock, ShieldCheck } from "lucide-react";
+import type { DbBusiness, DbBusinessHours } from "@/lib/database/types";
 import type { UserProfile } from "@/lib/data/profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,10 +13,24 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signOutAction } from "@/app/actions/auth";
-import { updateBusinessProfileAction } from "@/app/actions/business";
+import { updateBusinessProfileAction, updateBusinessHoursAction } from "@/app/actions/business";
 import { updateProfileNameAction, updateEmailAction, updatePasswordAction } from "@/app/actions/profile";
 
-export function SettingsClient({ business, profile }: { business: DbBusiness; profile: UserProfile }) {
+const WEEKDAY_LABELS: Record<string, string> = {
+  monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
+  friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+const WEEKDAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+export function SettingsClient({
+  business,
+  profile,
+  hours,
+}: {
+  business: DbBusiness;
+  profile: UserProfile;
+  hours: DbBusinessHours[];
+}) {
   const [name, setName] = useState(business.name);
   const [description, setDescription] = useState(business.description || "");
   const [address, setAddress] = useState(business.address || "");
@@ -30,6 +43,38 @@ export function SettingsClient({ business, profile }: { business: DbBusiness; pr
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Hours
+  const sortedHours = [...hours].sort((a, b) => WEEKDAY_ORDER.indexOf(a.weekday) - WEEKDAY_ORDER.indexOf(b.weekday));
+  const [hoursDraft, setHoursDraft] = useState(
+    sortedHours.map((h) => ({
+      weekday: h.weekday,
+      isOpen: h.is_open,
+      openTime: h.open_time?.slice(0, 5) || "09:00",
+      closeTime: h.close_time?.slice(0, 5) || "17:00",
+    }))
+  );
+  const [hoursSaved, setHoursSaved] = useState(false);
+  const [hoursError, setHoursError] = useState<string | null>(null);
+
+  function setDay(index: number, patch: Partial<(typeof hoursDraft)[number]>) {
+    const next = [...hoursDraft];
+    next[index] = { ...next[index], ...patch };
+    setHoursDraft(next);
+  }
+
+  function handleSaveHours() {
+    setHoursError(null);
+    startTransition(async () => {
+      const result = await updateBusinessHoursAction(hoursDraft);
+      if (!result.success) {
+        setHoursError(result.error || "Could not save hours.");
+        return;
+      }
+      setHoursSaved(true);
+      setTimeout(() => setHoursSaved(false), 1800);
+    });
+  }
 
   // Account
   const [fullName, setFullName] = useState(profile.fullName);
@@ -98,10 +143,9 @@ export function SettingsClient({ business, profile }: { business: DbBusiness; pr
     <Tabs defaultValue="business">
       <TabsList className="flex-wrap">
         <TabsTrigger value="business"><Building2 className="h-3.5 w-3.5" /> Business profile</TabsTrigger>
+        <TabsTrigger value="hours"><Clock className="h-3.5 w-3.5" /> Hours</TabsTrigger>
         <TabsTrigger value="account"><UserRound className="h-3.5 w-3.5" /> Account</TabsTrigger>
         <TabsTrigger value="notifications"><Bell className="h-3.5 w-3.5" /> Notifications</TabsTrigger>
-        <TabsTrigger value="phone"><Phone className="h-3.5 w-3.5" /> Phone</TabsTrigger>
-        <TabsTrigger value="billing"><CreditCard className="h-3.5 w-3.5" /> Billing</TabsTrigger>
         <TabsTrigger value="security"><ShieldCheck className="h-3.5 w-3.5" /> Security</TabsTrigger>
       </TabsList>
 
@@ -128,6 +172,9 @@ export function SettingsClient({ business, profile }: { business: DbBusiness; pr
               <div>
                 <Label>Phone (used for call transfers)</Label>
                 <Input className="mt-1.5" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <p className="mt-1 text-[11px] text-text-faint">
+                  Your HavnLine number and forwarding are managed in Integrations.
+                </p>
               </div>
             </div>
             {error && (
@@ -140,6 +187,43 @@ export function SettingsClient({ business, profile }: { business: DbBusiness; pr
                 {isPending ? "Saving…" : "Save changes"}
               </Button>
               {saved && <span className="text-[12.5px] font-medium text-success">Saved ✓</span>}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="hours">
+        <Card>
+          <CardHeader>
+            <CardTitle>Business hours</CardTitle>
+            <CardDescription>Your AI only offers appointments within these hours.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-border-soft rounded-xl border border-border">
+              {hoursDraft.map((day, i) => (
+                <div key={day.weekday} className="flex flex-wrap items-center gap-4 px-4 py-3.5">
+                  <div className="flex w-32 items-center gap-2.5">
+                    <Switch checked={day.isOpen} onCheckedChange={(checked) => setDay(i, { isOpen: checked })} />
+                    <span className="text-[13.5px] font-medium text-text">{WEEKDAY_LABELS[day.weekday]}</span>
+                  </div>
+                  {day.isOpen ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <Input type="time" className="w-32" value={day.openTime} onChange={(e) => setDay(i, { openTime: e.target.value })} />
+                      <span className="text-[12.5px] text-text-faint">to</span>
+                      <Input type="time" className="w-32" value={day.closeTime} onChange={(e) => setDay(i, { closeTime: e.target.value })} />
+                    </div>
+                  ) : (
+                    <span className="flex-1 text-[13px] text-text-faint">Closed</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {hoursError && <p className="mt-3 text-[12px] text-danger">{hoursError}</p>}
+            <div className="mt-4 flex items-center gap-3">
+              <Button variant="brand" size="sm" onClick={handleSaveHours} disabled={isPending}>
+                {isPending ? "Saving…" : "Save hours"}
+              </Button>
+              {hoursSaved && <span className="text-[12.5px] font-medium text-success">Saved ✓</span>}
             </div>
           </CardContent>
         </Card>
@@ -220,42 +304,6 @@ export function SettingsClient({ business, profile }: { business: DbBusiness; pr
             <p className="pt-3 text-[11.5px] text-text-faint">
               These preferences aren&apos;t wired to real notifications yet — a future update.
             </p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="phone">
-        <Card>
-          <CardHeader>
-            <CardTitle>Phone</CardTitle>
-            <CardDescription>Your HavnLine number and call forwarding.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-border bg-paper px-4 py-5 text-center text-[13px] text-text-muted">
-              Get a phone number, set up call forwarding from your existing number, and manage everything from{" "}
-              <Link href="/dashboard/integrations" className="font-medium text-brand hover:underline">
-                Integrations
-              </Link>
-              .
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="billing">
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing</CardTitle>
-            <CardDescription>Plan and payment details.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-border bg-paper px-4 py-5 text-center text-[13px] text-text-muted">
-              Manage your subscription, payment method, and billing history from{" "}
-              <Link href="/dashboard/billing" className="font-medium text-brand hover:underline">
-                Billing
-              </Link>
-              .
-            </div>
           </CardContent>
         </Card>
       </TabsContent>

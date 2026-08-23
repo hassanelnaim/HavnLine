@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
+import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, buildTurnResponseTwiml } from "@/lib/ai/twimlHelpers";
 
@@ -25,16 +26,17 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {};
   formData.forEach((value, key) => (params[key] = String(value)));
 
-  const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = request.nextUrl.toString();
-  if (!validateTwilioSignature(signature, fullUrl, params)) {
-    return new NextResponse("Invalid signature", { status: 403 });
-  }
-
   const admin = createAdminClient();
   const { data: call } = await admin.from("calls").select("business_id").eq("id", callId).single();
   if (!call) {
     return twiml(`<Response><Say>Sorry, something went wrong. Goodbye.</Say><Hangup/></Response>`);
+  }
+
+  const authToken = await getBusinessTwilioAuthToken(call.business_id);
+  const signature = request.headers.get("x-twilio-signature");
+  const fullUrl = request.nextUrl.toString();
+  if (!validateTwilioSignature(signature, fullUrl, params, authToken)) {
+    return new NextResponse("Invalid signature", { status: 403 });
   }
 
   const { data: voiceConfig } = await admin

@@ -5,32 +5,85 @@ import type { VoiceId } from "@/lib/database/types";
  * integrations/telephony/twilioProvider.ts
  *
  * All direct Twilio SDK usage lives here — nothing else in the app
- * imports the `twilio` package directly. This keeps Twilio swappable
- * and keeps API credentials out of the rest of the codebase.
+ * imports the `twilio` package directly.
+ *
+ * TWILIO SUB-ACCOUNTS — real per-business isolation
+ * --------------------------------------------------
+ * Every business gets its own Twilio SUB-ACCOUNT (its own account SID
+ * + auth token, created under your one master account), and its phone
+ * number lives inside that sub-account, not the master one. This
+ * means:
+ *   - Each business's calls, SMS, and usage are cleanly separated in
+ *     Twilio's own records — not just in our database.
+ *   - If one business's number is ever flagged for abuse or spam, it
+ *     can't affect any other business's number or reputation.
+ *   - Webhook signature validation for a given business's calls uses
+ *     THAT business's sub-account auth token, not the master one —
+ *     this is a real security detail, not just organizational: Twilio
+ *     signs webhook requests using the auth token of whichever account
+ *     actually owns the number that was called.
+ *
+ * IMPORTANT — what sub-accounts do NOT do: they don't create separate
+ * billing wallets. Every sub-account's usage still bills to your one
+ * master account's payment method — sub-accounts are for isolation and
+ * organization, not per-customer credit cards. That's what the Stripe
+ * subscription side of this app is for.
  */
 
-function getClient() {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) return null;
-  return twilio(sid, token);
+interface TwilioCredentials {
+  accountSid: string;
+  authToken: string;
+}
+
+function getMasterCredentials(): TwilioCredentials | null {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!accountSid || !authToken) return null;
+  return { accountSid, authToken };
+}
+
+function getClient(creds?: TwilioCredentials | null) {
+  const resolved = creds || getMasterCredentials();
+  if (!resolved) return null;
+  return twilio(resolved.accountSid, resolved.authToken);
+}
+
+export function isTwilioConfigured(): boolean {
+  return Boolean(getMasterCredentials());
+}
+
+/**
+ * Creates a new Twilio sub-account for a business. Called once, the
+ * first time a business provisions a phone number.
+ */
+export async function createSubAccount(
+  businessName: string
+): Promise<{ success: boolean; accountSid?: string; authToken?: string; reason?: string }> {
+  const masterClient = getClient();
+  if (!masterClient) return { success: false, reason: "Twilio is not configured." };
+
+  try {
+    const subAccount = await masterClient.api.v2010.accounts.create({
+      friendlyName: `HavnLine — ${businessName}`.slice(0, 64),
+    });
+    return { success: true, accountSid: subAccount.sid, authToken: subAccount.authToken };
+  } catch (err) {
+    console.error("Twilio sub-account creation failed:", err);
+    return { success: false, reason: err instanceof Error ? err.message : "Unknown error" };
+  }
 }
 
 /**
  * Maps GetMade's internal, business-owner-facing voice IDs to a real
- * Twilio <Say> voice. Twilio's built-in Say verb supports Amazon Polly
- * neural voices out of the box — no separate voice-provider account
- * needed for Phase 2. The business owner never sees "Polly" or
- * "Twilio" anywhere, only their chosen name (Alex, Sarah, James, Emma).
+ * Twilio <Say> voice, used only as a fallback when ElevenLabs isn't
+ * configured. The business owner never sees "Polly" or "Twilio"
+ * anywhere, only their chosen name (Alex, Sarah, James, Emma).
  */
 const VOICE_MAP: Record<VoiceId, string> = {
   alex_professional: "Polly.Matthew-Neural",
   sarah_warm: "Polly.Joanna-Neural",
   james_calm: "Polly.Stephen-Neural",
   emma_friendly: "Polly.Kendra-Neural",
-  // Falls back to a sensible default if a business picked a custom
-  // ElevenLabs voice but ElevenLabs isn't configured for some reason
-  // (e.g. the key was removed) — should rarely actually be hit.
   custom: "Polly.Matthew-Neural",
 };
 
@@ -45,12 +98,16 @@ export interface ProvisionNumberResult {
 }
 
 /**
- * Searches for and purchases a real phone number, then points its voice
- * webhook at GetMade's inbound-call route. Requires a funded/trial
- * Twilio account — this makes a real, billable API call.
+ * Searches for and purchases a real phone number UNDER THE GIVEN
+ * SUB-ACCOUNT (not the master account), then points its voice webhook
+ * at HavnLine's inbound-call route. Requires a funded Twilio account —
+ * this makes a real, billable API call.
  */
-export async function provisionNumber(areaCode?: string): Promise<ProvisionNumberResult> {
-  const client = getClient();
+export async function provisionNumber(
+  subAccountCreds: TwilioCredentials,
+  areaCode?: string
+): Promise<ProvisionNumberResult> {
+  const client = getClient(subAccountCreds);
   if (!client) return { success: false, reason: "Twilio is not configured." };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -81,8 +138,13 @@ export async function provisionNumber(areaCode?: string): Promise<ProvisionNumbe
   }
 }
 
-export async function sendSms(to: string, from: string, body: string): Promise<{ sent: boolean; reason?: string }> {
-  const client = getClient();
+export async function sendSms(
+  subAccountCreds: TwilioCredentials | null,
+  to: string,
+  from: string,
+  body: string
+): Promise<{ sent: boolean; reason?: string }> {
+  const client = getClient(subAccountCreds);
   if (!client) {
     console.log(`[twilio-sms-stub] to=${to} body="${body}"`);
     return { sent: false, reason: "Twilio not configured (logged instead)." };
@@ -96,14 +158,17 @@ export async function sendSms(to: string, from: string, body: string): Promise<{
   }
 }
 
-export async function releaseNumber(phoneNumber: string): Promise<{ success: boolean; reason?: string }> {
-  const client = getClient();
+export async function releaseNumber(
+  subAccountCreds: TwilioCredentials | null,
+  phoneNumber: string
+): Promise<{ success: boolean; reason?: string }> {
+  const client = getClient(subAccountCreds);
   if (!client) return { success: false, reason: "Twilio is not configured." };
 
   try {
     const numbers = await client.incomingPhoneNumbers.list({ phoneNumber, limit: 1 });
     if (numbers.length === 0) {
-      return { success: false, reason: "Number not found on this account." };
+      return { success: false, reason: "Number not found on this sub-account." };
     }
     await client.incomingPhoneNumbers(numbers[0].sid).remove();
     return { success: true };
@@ -113,17 +178,19 @@ export async function releaseNumber(phoneNumber: string): Promise<{ success: boo
   }
 }
 
-export function isTwilioConfigured(): boolean {
-  return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
-}
-
 /**
- * Validates that an inbound webhook request really came from Twilio,
- * using the account's auth token to verify the X-Twilio-Signature
- * header. Every webhook route calls this before trusting the payload.
+ * Validates that an inbound webhook request really came from Twilio.
+ * Takes the auth token explicitly — for a sub-account's number, this
+ * MUST be that sub-account's own auth token, not the master account's,
+ * since that's what Twilio actually signed the request with.
  */
-export function validateTwilioSignature(signature: string | null, url: string, params: Record<string, string>): boolean {
-  const token = process.env.TWILIO_AUTH_TOKEN;
+export function validateTwilioSignature(
+  signature: string | null,
+  url: string,
+  params: Record<string, string>,
+  authToken?: string | null
+): boolean {
+  const token = authToken || process.env.TWILIO_AUTH_TOKEN;
   if (!token || !signature) return false;
   return twilio.validateRequest(token, signature, url, params);
 }

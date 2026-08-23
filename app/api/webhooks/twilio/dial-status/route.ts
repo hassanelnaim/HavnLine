@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, sayLine } from "@/lib/ai/twimlHelpers";
 
@@ -23,9 +24,13 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {};
   formData.forEach((value, key) => (params[key] = String(value)));
 
+  const admin = createAdminClient();
+  const { data: call } = await admin.from("calls").select("business_id").eq("id", callId).single();
+
+  const authToken = call ? await getBusinessTwilioAuthToken(call.business_id) : null;
   const signature = request.headers.get("x-twilio-signature");
   const fullUrl = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
-  if (!validateTwilioSignature(signature, fullUrl, params)) {
+  if (!validateTwilioSignature(signature, fullUrl, params, authToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
@@ -39,9 +44,6 @@ export async function POST(request: NextRequest) {
   // Nobody answered — log this as a real escalation, same as
   // escalate_to_human, so it shows up in the dashboard for the
   // business to follow up on, instead of the caller just being dropped.
-  const admin = createAdminClient();
-  const { data: call } = await admin.from("calls").select("business_id").eq("id", callId).single();
-
   if (call) {
     await admin
       .from("calls")

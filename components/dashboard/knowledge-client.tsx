@@ -12,6 +12,7 @@ import {
   togglePromotionAction,
   deletePromotionAction,
 } from "@/app/actions/knowledge";
+import { addServiceAction, deleteServiceAction } from "@/app/actions/services";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,11 +30,11 @@ function itemsByCategory(items: DbKnowledgeItem[], category: KnowledgeCategory) 
 
 export function KnowledgeClient({
   initialItems,
-  services,
+  initialServices,
   initialPromotions,
 }: {
   initialItems: DbKnowledgeItem[];
-  services: DbService[];
+  initialServices: DbService[];
   initialPromotions: DbPromotion[];
 }) {
   const router = useRouter();
@@ -61,6 +62,50 @@ export function KnowledgeClient({
   useEffect(() => {
     setPromotions(initialPromotions);
   }, [initialPromotions]);
+
+  // Services
+  const [services, setServices] = useState(initialServices);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceDescription, setNewServiceDescription] = useState("");
+  const [newServicePrice, setNewServicePrice] = useState("");
+  const [newServiceDuration, setNewServiceDuration] = useState(30);
+  const [serviceError, setServiceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setServices(initialServices);
+  }, [initialServices]);
+
+  function addService() {
+    if (!newServiceName.trim()) {
+      setServiceError("Service name is required.");
+      return;
+    }
+    setServiceError(null);
+    startTransition(async () => {
+      const result = await addServiceAction({
+        name: newServiceName,
+        description: newServiceDescription,
+        priceDollars: newServicePrice,
+        durationMinutes: newServiceDuration,
+      });
+      if (!result.success) {
+        setServiceError(result.error || "Could not save that service.");
+        return;
+      }
+      setNewServiceName("");
+      setNewServiceDescription("");
+      setNewServicePrice("");
+      setNewServiceDuration(30);
+      router.refresh();
+    });
+  }
+
+  function removeService(id: string) {
+    setServices((prev) => prev.filter((s) => s.id !== id));
+    startTransition(async () => {
+      await deleteServiceAction(id);
+    });
+  }
 
   function addPromotion() {
     if (!promoTitle.trim() || !promoDescription.trim() || !promoStart || !promoEnd) {
@@ -380,27 +425,65 @@ export function KnowledgeClient({
       </TabsContent>
 
       <TabsContent value="services">
-        <Card>
+        <Card className="mb-4">
           <CardHeader>
-            <CardTitle>Services &amp; pricing</CardTitle>
-            <CardDescription>
-              Managed from AI Employee → Services. Your AI only quotes what&apos;s listed here.
-            </CardDescription>
+            <CardTitle>Add a service</CardTitle>
+            <CardDescription>Your AI only quotes prices and durations listed here — never invents them.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {services.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-border-soft px-3.5 py-2.5">
-                <div>
-                  <div className="text-[13.5px] font-medium text-text">{s.name}</div>
-                  <div className="text-[12px] text-text-muted">{s.description}</div>
-                </div>
-                <div className="text-right font-mono text-[12.5px] text-text">
-                  {formatCents(s.price_cents)} · {s.duration_minutes}m
-                </div>
+          <CardContent className="space-y-3">
+            {serviceError && (
+              <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+                {serviceError}
               </div>
-            ))}
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label>Name</Label>
+                <Input className="mt-1.5" placeholder="Oil Change" value={newServiceName} onChange={(e) => setNewServiceName(e.target.value)} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Description</Label>
+                <Input className="mt-1.5" placeholder="Full synthetic oil change" value={newServiceDescription} onChange={(e) => setNewServiceDescription(e.target.value)} />
+              </div>
+              <div>
+                <Label>Price ($)</Label>
+                <Input type="number" step="0.01" className="mt-1.5" placeholder="59.99" value={newServicePrice} onChange={(e) => setNewServicePrice(e.target.value)} />
+              </div>
+              <div>
+                <Label>Duration (minutes)</Label>
+                <Input type="number" className="mt-1.5" value={newServiceDuration} onChange={(e) => setNewServiceDuration(parseInt(e.target.value) || 30)} />
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={addService} disabled={isPending}>
+              <Plus className="h-3.5 w-3.5" /> Add service
+            </Button>
           </CardContent>
         </Card>
+
+        {services.length === 0 ? (
+          <EmptyState icon={Tag} title="No services yet" description="Add your first service above." />
+        ) : (
+          <div className="space-y-2.5">
+            {services.map((s) => (
+              <Card key={s.id}>
+                <CardContent className="flex items-center justify-between gap-4 p-4">
+                  <div>
+                    <div className="text-[13.5px] font-medium text-text">{s.name}</div>
+                    <div className="text-[12px] text-text-muted">{s.description}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right font-mono text-[12.5px] text-text">
+                      {formatCents(s.price_cents)} · {s.duration_minutes}m
+                    </div>
+                    <button onClick={() => removeService(s.id)} className="rounded-md p-1 text-text-faint hover:bg-danger-soft hover:text-danger">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="policies">

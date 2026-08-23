@@ -123,7 +123,11 @@ export default function LandingPage() {
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-[12px] text-text-faint">
           <span>© {new Date().getFullYear()} HavnLine</span>
-          <span>Front desk, automated.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/policies" className="hover:text-text">Terms</Link>
+            <Link href="/policies#privacy" className="hover:text-text">Privacy</Link>
+            <span>Front desk, automated.</span>
+          </div>
         </div>
       </footer>
     </div>

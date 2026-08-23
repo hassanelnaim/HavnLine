@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
+import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, sayLine } from "@/lib/ai/twimlHelpers";
 
@@ -38,16 +39,20 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {};
   formData.forEach((value, key) => (params[key] = String(value)));
 
-  const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
-  if (!validateTwilioSignature(signature, fullUrl, params)) {
-    return new NextResponse("Invalid signature", { status: 403 });
-  }
-
   const admin = createAdminClient();
   const { data: call } = await admin.from("calls").select("business_id").eq("id", callId).single();
   if (!call) {
     return twiml(`<Response><Say>Sorry, something went wrong. Goodbye.</Say><Hangup/></Response>`);
+  }
+
+  // Validate using THIS business's own sub-account auth token — not a
+  // shared master token — since that's what Twilio actually signed
+  // the request with.
+  const authToken = await getBusinessTwilioAuthToken(call.business_id);
+  const signature = request.headers.get("x-twilio-signature");
+  const fullUrl = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
+  if (!validateTwilioSignature(signature, fullUrl, params, authToken)) {
+    return new NextResponse("Invalid signature", { status: 403 });
   }
 
   const { data: voiceConfig } = await admin

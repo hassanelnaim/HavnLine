@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { endCall } from "@/lib/ai/receptionist";
+import { resolveBusinessFromPhoneNumber } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -17,9 +18,14 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {};
   formData.forEach((value, key) => (params[key] = String(value)));
 
+  // Resolve the owning business (and their sub-account auth token) from
+  // the dialed number, same as the voice webhook — this endpoint is
+  // registered at the phone-number level, so it's shared across every
+  // call to that number, not tied to one call up front.
+  const resolved = await resolveBusinessFromPhoneNumber(params.To);
   const signature = request.headers.get("x-twilio-signature");
   const fullUrl = `${SITE_URL}/api/webhooks/twilio/status`;
-  if (!validateTwilioSignature(signature, fullUrl, params)) {
+  if (!validateTwilioSignature(signature, fullUrl, params, resolved?.subAccountAuthToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 

@@ -19,7 +19,7 @@ export default async function KnowledgePage() {
         title="Knowledge"
         description="What your AI receptionist knows about your business, services, and policies."
       />
-      <KnowledgeClient initialItems={items} services={services} initialPromotions={promotions} />
+      <KnowledgeClient initialItems={items} initialServices={services} initialPromotions={promotions} />
     </div>
   );
 }

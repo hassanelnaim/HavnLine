@@ -4,10 +4,11 @@ import { sendSms as twilioSendSms, isTwilioConfigured } from "@/lib/integrations
 /**
  * integrations/sms/index.ts
  *
- * Thin wrapper the AI tools call — resolves the business's assigned
- * GetMade number as the "from" address, then delegates to the Twilio
- * provider. Falls back to a console-logged stub if Twilio isn't
- * configured, so the rest of the app keeps working without it.
+ * Thin wrapper the AI tools call — resolves the business's own
+ * sub-account credentials and assigned number, then delegates to the
+ * Twilio provider so the message sends (and bills) under that
+ * specific business's sub-account, not the shared master account.
+ * Falls back to a console-logged stub if Twilio isn't configured.
  */
 
 export interface SmsClientLike {
@@ -30,12 +31,17 @@ class TwilioBackedSmsClient implements SmsClientLike {
       .eq("status", "connected")
       .maybeSingle();
 
-    const fromNumber = (data?.metadata as Record<string, unknown> | null)?.phone_number as string | undefined;
+    const meta = data?.metadata as Record<string, unknown> | null;
+    const fromNumber = meta?.phone_number as string | undefined;
+    const subAccountSid = meta?.subaccount_sid as string | undefined;
+    const subAccountAuthToken = meta?.subaccount_auth_token as string | undefined;
+
     if (!fromNumber) {
-      return { sent: false, reason: "No GetMade phone number provisioned for this business yet." };
+      return { sent: false, reason: "No HavnLine phone number provisioned for this business yet." };
     }
 
-    return twilioSendSms(to, fromNumber, message);
+    const creds = subAccountSid && subAccountAuthToken ? { accountSid: subAccountSid, authToken: subAccountAuthToken } : null;
+    return twilioSendSms(creds, to, fromNumber, message);
   }
 }
 

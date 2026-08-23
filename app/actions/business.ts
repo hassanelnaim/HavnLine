@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentBusinessId } from "@/lib/supabase/business";
 import { generateInstructions } from "@/lib/ai/generateInstructions";
-import { provisionNumber, releaseNumber } from "@/lib/integrations/telephony/twilioProvider";
+import { provisionNumber, releaseNumber, createSubAccount } from "@/lib/integrations/telephony/twilioProvider";
 import type { AiResponsibilities, Personality, VoiceId } from "@/lib/database/types";
 
 async function requireBusinessId(): Promise<string> {
@@ -183,8 +183,75 @@ export async function updateBusinessProfileAction(input: {
   return { success: true };
 }
 
+export interface HoursInput {
+  weekday: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+/**
+ * Updates all 7 days of business hours in one save. Every business
+ * already has 7 rows (one per weekday) from onboarding, so this is
+ * always an update to existing rows, never a fresh insert.
+ */
+export async function updateBusinessHoursAction(hours: HoursInput[]): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  const admin = createAdminClient();
+  const rows = hours.map((h) => ({
+    business_id: businessId,
+    weekday: h.weekday,
+    is_open: h.isOpen,
+    open_time: h.isOpen ? h.openTime : null,
+    close_time: h.isOpen ? h.closeTime : null,
+  }));
+
+  const { error } = await admin.from("business_hours").upsert(rows, { onConflict: "business_id,weekday" });
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/ai-employee");
+  return { success: true };
+}
+
 export interface ProvisionResult extends ActionResult {
   phoneNumber?: string;
+}
+
+/**
+ * Gets this business's existing Twilio sub-account, or creates one if
+ * they don't have one yet. Every business gets exactly one — its own
+ * isolated Twilio account, separate from every other business, even
+ * though the actual bill still goes to your one master account.
+ */
+async function getOrCreateSubAccount(
+  businessId: string,
+  businessName: string
+): Promise<{ accountSid: string; authToken: string } | { error: string }> {
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("integrations")
+    .select("metadata")
+    .eq("business_id", businessId)
+    .eq("provider", "twilio")
+    .maybeSingle();
+
+  const meta = existing?.metadata as Record<string, unknown> | null;
+  if (meta?.subaccount_sid && meta?.subaccount_auth_token) {
+    return { accountSid: meta.subaccount_sid as string, authToken: meta.subaccount_auth_token as string };
+  }
+
+  const result = await createSubAccount(businessName);
+  if (!result.success || !result.accountSid || !result.authToken) {
+    return { error: result.reason || "Could not create a Twilio sub-account for this business." };
+  }
+  return { accountSid: result.accountSid, authToken: result.authToken };
 }
 
 export async function provisionPhoneNumberAction(areaCode?: string): Promise<ProvisionResult> {
@@ -195,19 +262,33 @@ export async function provisionPhoneNumberAction(areaCode?: string): Promise<Pro
     return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
   }
 
-  const result = await provisionNumber(areaCode);
+  const admin = createAdminClient();
+  const { data: business } = await admin.from("businesses").select("name").eq("id", businessId).single();
+
+  const subAccount = await getOrCreateSubAccount(businessId, business?.name || "Business");
+  if ("error" in subAccount) {
+    return { success: false, error: subAccount.error };
+  }
+
+  const result = await provisionNumber(
+    { accountSid: subAccount.accountSid, authToken: subAccount.authToken },
+    areaCode
+  );
   if (!result.success || !result.phoneNumber) {
     return { success: false, error: result.reason || "Could not provision a number." };
   }
 
-  const admin = createAdminClient();
   await admin.from("integrations").upsert(
     {
       business_id: businessId,
       provider: "twilio",
       status: "connected",
       connected_at: new Date().toISOString(),
-      metadata: { phone_number: result.phoneNumber },
+      metadata: {
+        phone_number: result.phoneNumber,
+        subaccount_sid: subAccount.accountSid,
+        subaccount_auth_token: subAccount.authToken,
+      },
     },
     { onConflict: "business_id,provider" }
   );
@@ -220,7 +301,8 @@ export async function provisionPhoneNumberAction(areaCode?: string): Promise<Pro
 /**
  * Releases the business's current HavnLine number and provisions a new
  * one, ideally in the requested area code. Use this to fix a wrong
- * area code from a prior provisioning attempt.
+ * area code from a prior provisioning attempt. Keeps the same
+ * sub-account — only the number itself changes.
  */
 export async function changePhoneNumberAction(areaCode?: string): Promise<ProvisionResult> {
   let businessId: string;
@@ -238,15 +320,31 @@ export async function changePhoneNumberAction(areaCode?: string): Promise<Provis
     .eq("provider", "twilio")
     .maybeSingle();
 
-  const currentNumber = (existing?.metadata as Record<string, unknown> | null)?.phone_number as
-    | string
-    | undefined;
+  const meta = existing?.metadata as Record<string, unknown> | null;
+  const currentNumber = meta?.phone_number as string | undefined;
+  const subAccountSid = meta?.subaccount_sid as string | undefined;
+  const subAccountAuthToken = meta?.subaccount_auth_token as string | undefined;
 
+  // Release the old number first. If it was provisioned before
+  // sub-accounts existed, it still lives on the shared master account —
+  // release it from there (null = master). Either way, we then create
+  // (or reuse) this business's own sub-account for the NEW number, so
+  // every business ends up properly isolated going forward.
   if (currentNumber) {
-    await releaseNumber(currentNumber);
+    const releaseCreds = subAccountSid && subAccountAuthToken ? { accountSid: subAccountSid, authToken: subAccountAuthToken } : null;
+    await releaseNumber(releaseCreds, currentNumber);
   }
 
-  const result = await provisionNumber(areaCode);
+  const { data: business } = await admin.from("businesses").select("name").eq("id", businessId).single();
+  const subAccount = await getOrCreateSubAccount(businessId, business?.name || "Business");
+  if ("error" in subAccount) {
+    return { success: false, error: subAccount.error };
+  }
+
+  const result = await provisionNumber(
+    { accountSid: subAccount.accountSid, authToken: subAccount.authToken },
+    areaCode
+  );
   if (!result.success || !result.phoneNumber) {
     // Old number is already released at this point — clear the row so the
     // UI doesn't show a stale "connected" state for a number that's gone.
@@ -265,7 +363,11 @@ export async function changePhoneNumberAction(areaCode?: string): Promise<Provis
       provider: "twilio",
       status: "connected",
       connected_at: new Date().toISOString(),
-      metadata: { phone_number: result.phoneNumber },
+      metadata: {
+        phone_number: result.phoneNumber,
+        subaccount_sid: subAccount.accountSid,
+        subaccount_auth_token: subAccount.authToken,
+      },
     },
     { onConflict: "business_id,provider" }
   );

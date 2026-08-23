@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveBusinessIdFromPhoneNumber, loadBusinessContext } from "@/lib/ai/context";
+import { resolveBusinessFromPhoneNumber, loadBusinessContext } from "@/lib/ai/context";
 import { startCall } from "@/lib/ai/receptionist";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
@@ -31,19 +31,25 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {};
   formData.forEach((value, key) => (params[key] = String(value)));
 
-  const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = `${SITE_URL}/api/webhooks/twilio/voice`;
-  if (!validateTwilioSignature(signature, fullUrl, params)) {
-    return new NextResponse("Invalid signature", { status: 403 });
-  }
-
   const dialedNumber = params.To;
   const callerNumber = params.From || "unknown";
 
-  const businessId = await resolveBusinessIdFromPhoneNumber(dialedNumber);
-  if (!businessId) {
+  // Resolve which business owns this number FIRST — we need their
+  // specific sub-account auth token to correctly validate the
+  // signature below, since Twilio signs with the token of whichever
+  // account actually owns the number that was called.
+  const resolved = await resolveBusinessFromPhoneNumber(dialedNumber);
+  if (!resolved) {
     return twiml(`<Response><Say>This number is not currently configured. Goodbye.</Say><Hangup/></Response>`);
   }
+
+  const signature = request.headers.get("x-twilio-signature");
+  const fullUrl = `${SITE_URL}/api/webhooks/twilio/voice`;
+  if (!validateTwilioSignature(signature, fullUrl, params, resolved.subAccountAuthToken)) {
+    return new NextResponse("Invalid signature", { status: 403 });
+  }
+
+  const businessId = resolved.businessId;
 
   const context = await loadBusinessContext(businessId);
   if (!context) {

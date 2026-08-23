@@ -83,7 +83,19 @@ export async function loadBusinessContext(businessId: string): Promise<BusinessC
  * never trust a business_id sent in a request body for anything
  * call-related.
  */
-export async function resolveBusinessIdFromPhoneNumber(dialedNumber: string): Promise<string | null> {
+export interface ResolvedBusiness {
+  businessId: string;
+  subAccountAuthToken: string | null;
+}
+
+/**
+ * Resolves both which business a Twilio call belongs to, AND that
+ * business's own Twilio sub-account auth token — needed because
+ * Twilio signs webhook requests using the auth token of whichever
+ * account actually owns the number that was called (the sub-account),
+ * not the shared master account.
+ */
+export async function resolveBusinessFromPhoneNumber(dialedNumber: string): Promise<ResolvedBusiness | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("integrations")
@@ -98,5 +110,29 @@ export async function resolveBusinessIdFromPhoneNumber(dialedNumber: string): Pr
     return meta && meta.phone_number === dialedNumber;
   });
 
-  return match ? (match.business_id as string) : null;
+  if (!match) return null;
+
+  const meta = match.metadata as Record<string, unknown> | null;
+  return {
+    businessId: match.business_id as string,
+    subAccountAuthToken: (meta?.subaccount_auth_token as string) || null,
+  };
+}
+
+/**
+ * Fetches a business's Twilio sub-account auth token, given its
+ * business_id directly (used by webhook routes that already resolved
+ * business_id from a call record, rather than from the dialed number).
+ */
+export async function getBusinessTwilioAuthToken(businessId: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("integrations")
+    .select("metadata")
+    .eq("business_id", businessId)
+    .eq("provider", "twilio")
+    .maybeSingle();
+
+  const meta = data?.metadata as Record<string, unknown> | null;
+  return (meta?.subaccount_auth_token as string) || null;
 }

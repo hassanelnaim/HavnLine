@@ -209,7 +209,7 @@ export function AiEmployeeClient({
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-text-faint" /> Business hours
                 </CardTitle>
-                <CardDescription>Edit these from Settings → Business profile.</CardDescription>
+                <CardDescription>Edit these from Settings → Hours.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {hours.map((h) => (
