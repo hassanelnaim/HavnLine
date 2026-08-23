@@ -20,6 +20,30 @@ async function requireBusinessId(): Promise<string> {
   return businessId;
 }
 
+/**
+ * Blocks actions that cost real money (provisioning a real phone
+ * number, etc.) from a business with no active or trialing
+ * subscription. Without this, anyone could sign up and rack up real
+ * Twilio charges against the platform without ever paying — the
+ * subscription check on "turn AI online" alone doesn't prevent that,
+ * since provisioning happens on a separate action.
+ */
+async function requireOperationalSubscription(businessId: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data: business } = await admin
+    .from("businesses")
+    .select("subscription_status")
+    .eq("id", businessId)
+    .single();
+
+  const status = business?.subscription_status;
+  const operational = status === "active" || status === "trialing" || status === "past_due";
+
+  return operational
+    ? null
+    : "Start your free trial in Billing before setting up a phone number.";
+}
+
 export interface ActionResult {
   success: boolean;
   error?: string;
@@ -262,6 +286,9 @@ export async function provisionPhoneNumberAction(areaCode?: string): Promise<Pro
     return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
   }
 
+  const subscriptionError = await requireOperationalSubscription(businessId);
+  if (subscriptionError) return { success: false, error: subscriptionError };
+
   const admin = createAdminClient();
   const { data: business } = await admin.from("businesses").select("name").eq("id", businessId).single();
 
@@ -311,6 +338,9 @@ export async function changePhoneNumberAction(areaCode?: string): Promise<Provis
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
   }
+
+  const subscriptionError = await requireOperationalSubscription(businessId);
+  if (subscriptionError) return { success: false, error: subscriptionError };
 
   const admin = createAdminClient();
   const { data: existing } = await admin
