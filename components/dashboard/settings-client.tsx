@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Building2, UserRound, Bell, Phone, CreditCard, ShieldCheck } from "lucide-react";
 import type { DbBusiness } from "@/lib/database/types";
+import type { UserProfile } from "@/lib/data/profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signOutAction } from "@/app/actions/auth";
 import { updateBusinessProfileAction } from "@/app/actions/business";
+import { updateProfileNameAction, updateEmailAction, updatePasswordAction } from "@/app/actions/profile";
 
-export function SettingsClient({ business }: { business: DbBusiness }) {
+export function SettingsClient({ business, profile }: { business: DbBusiness; profile: UserProfile }) {
   const [name, setName] = useState(business.name);
   const [description, setDescription] = useState(business.description || "");
   const [address, setAddress] = useState(business.address || "");
@@ -28,6 +31,17 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Account
+  const [fullName, setFullName] = useState(profile.fullName);
+  const [email, setEmail] = useState(profile.email);
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   function handleSaveProfile() {
     setError(null);
     startTransition(async () => {
@@ -38,6 +52,45 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
+    });
+  }
+
+  function handleSaveName() {
+    setNameError(null);
+    startTransition(async () => {
+      const result = await updateProfileNameAction(fullName);
+      if (!result.success) {
+        setNameError(result.error || "Could not save your name.");
+        return;
+      }
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 1800);
+    });
+  }
+
+  function handleSaveEmail() {
+    setEmailError(null);
+    startTransition(async () => {
+      const result = await updateEmailAction(email);
+      if (!result.success) {
+        setEmailError(result.error || "Could not update your email.");
+        return;
+      }
+      setEmailSaved(true);
+    });
+  }
+
+  function handleSavePassword() {
+    setPasswordError(null);
+    startTransition(async () => {
+      const result = await updatePasswordAction(newPassword);
+      if (!result.success) {
+        setPasswordError(result.error || "Could not update your password.");
+        return;
+      }
+      setPasswordSaved(true);
+      setNewPassword("");
+      setTimeout(() => setPasswordSaved(false), 2500);
     });
   }
 
@@ -73,7 +126,7 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
                 <Input className="mt-1.5" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
               <div>
-                <Label>Phone</Label>
+                <Label>Phone (used for call transfers)</Label>
                 <Input className="mt-1.5" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
             </div>
@@ -93,32 +146,55 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
       </TabsContent>
 
       <TabsContent value="account">
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your personal login and profile details.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Full name</Label>
-              <Input className="mt-1.5" defaultValue="Jamie Rivera" />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input className="mt-1.5" type="email" defaultValue="jamie@riversideautotire.example" />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your profile</CardTitle>
+              <CardDescription>Your personal login and display name.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <div className="text-[13.5px] font-medium text-text">Log out</div>
-                <div className="text-[12px] text-text-muted">End your session on this device.</div>
+                <Label>Full name</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <Button variant="outline" size="sm" onClick={handleSaveName} disabled={isPending}>
+                    Save
+                  </Button>
+                </div>
+                {nameError && <p className="mt-1.5 text-[12px] text-danger">{nameError}</p>}
+                {nameSaved && <p className="mt-1.5 text-[12px] text-success">Saved ✓</p>}
               </div>
-              <form action={signOutAction}>
-                <Button variant="outline" size="sm" type="submit">Log out</Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+
+              <div>
+                <Label>Email</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Button variant="outline" size="sm" onClick={handleSaveEmail} disabled={isPending}>
+                    Save
+                  </Button>
+                </div>
+                {emailError && <p className="mt-1.5 text-[12px] text-danger">{emailError}</p>}
+                {emailSaved && (
+                  <p className="mt-1.5 text-[12px] text-success">
+                    Check your new email address for a confirmation link — the change won&apos;t take effect until
+                    you click it.
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[13.5px] font-medium text-text">Log out</div>
+                  <div className="text-[12px] text-text-muted">End your session on this device.</div>
+                </div>
+                <form action={signOutAction}>
+                  <Button variant="outline" size="sm" type="submit">Log out</Button>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </TabsContent>
 
       <TabsContent value="notifications">
@@ -141,6 +217,9 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
                 <Switch checked={row.value} onCheckedChange={row.set} />
               </div>
             ))}
+            <p className="pt-3 text-[11.5px] text-text-faint">
+              These preferences aren&apos;t wired to real notifications yet — a future update.
+            </p>
           </CardContent>
         </Card>
       </TabsContent>
@@ -152,8 +231,12 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
             <CardDescription>Your HavnLine number and call forwarding.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-dashed border-border bg-paper px-4 py-6 text-center text-[13px] text-text-muted">
-              No phone number provisioned yet. Finish onboarding to get one.
+            <div className="rounded-lg border border-border bg-paper px-4 py-5 text-center text-[13px] text-text-muted">
+              Get a phone number, set up call forwarding from your existing number, and manage everything from{" "}
+              <Link href="/dashboard/integrations" className="font-medium text-brand hover:underline">
+                Integrations
+              </Link>
+              .
             </div>
           </CardContent>
         </Card>
@@ -166,8 +249,12 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
             <CardDescription>Plan and payment details.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-dashed border-border bg-paper px-4 py-6 text-center text-[13px] text-text-muted">
-              Billing isn&apos;t set up yet — this is a placeholder for Phase 2.
+            <div className="rounded-lg border border-border bg-paper px-4 py-5 text-center text-[13px] text-text-muted">
+              Manage your subscription, payment method, and billing history from{" "}
+              <Link href="/dashboard/billing" className="font-medium text-brand hover:underline">
+                Billing
+              </Link>
+              .
             </div>
           </CardContent>
         </Card>
@@ -182,9 +269,19 @@ export function SettingsClient({ business }: { business: DbBusiness }) {
           <CardContent className="space-y-4">
             <div>
               <Label>New password</Label>
-              <Input className="mt-1.5" type="password" placeholder="••••••••" />
+              <Input
+                className="mt-1.5"
+                type="password"
+                placeholder="At least 8 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
             </div>
-            <Button variant="outline" size="sm">Update password</Button>
+            {passwordError && <p className="text-[12px] text-danger">{passwordError}</p>}
+            {passwordSaved && <p className="text-[12px] text-success">Password updated ✓</p>}
+            <Button variant="outline" size="sm" onClick={handleSavePassword} disabled={isPending || newPassword.length === 0}>
+              Update password
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>

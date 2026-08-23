@@ -8,16 +8,19 @@ import { AiStatusToggle } from "@/components/dashboard/ai-status-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { signOutAction } from "@/app/actions/auth";
 import { LogoMark, LogoWordmark } from "@/components/brand/logo";
+import { initials } from "@/lib/format";
 
 export function DashboardShell({
   businessName,
   employeeName,
   initialStatus,
+  userFullName,
   children,
 }: {
   businessName: string;
   employeeName: string;
   initialStatus: "online" | "offline";
+  userFullName: string;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -87,9 +90,9 @@ export function DashboardShell({
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-paper"
             >
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-[11px]">JR</AvatarFallback>
+                <AvatarFallback className="text-[11px]">{initials(userFullName)}</AvatarFallback>
               </Avatar>
-              <span className="hidden text-[13px] font-medium text-text sm:block">Jamie Rivera</span>
+              <span className="hidden text-[13px] font-medium text-text sm:block">{userFullName}</span>
               <ChevronDown className="h-3.5 w-3.5 text-text-faint" />
             </button>
             {menuOpen && (
@@ -99,7 +102,7 @@ export function DashboardShell({
                   className="block rounded-lg px-3 py-2 text-[13px] text-text hover:bg-paper"
                   onClick={() => setMenuOpen(false)}
                 >
-                  Settings
+                  Edit profile
                 </Link>
                 <form action={signOutAction}>
                   <button

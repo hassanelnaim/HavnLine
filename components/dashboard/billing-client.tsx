@@ -13,10 +13,10 @@ const STATUS_META: Record<
   { label: string; variant: "success" | "brand" | "danger" | "neutral"; description: string }
 > = {
   active: { label: "Active", variant: "success", description: "Your receptionist is fully operational." },
-  trialing: { label: "Trial", variant: "brand", description: "You're in your trial period." },
+  trialing: { label: "Free trial", variant: "brand", description: "You're in your free trial — no charge until it ends." },
   past_due: { label: "Payment issue", variant: "danger", description: "Your last payment failed — update your payment method to keep your receptionist online." },
   canceled: { label: "Cancelled", variant: "neutral", description: "Your subscription has ended." },
-  none: { label: "Not subscribed", variant: "neutral", description: "Subscribe to turn your AI receptionist on." },
+  none: { label: "Not subscribed", variant: "neutral", description: "Start your 7-day free trial — no charge until it ends." },
 };
 
 export function BillingClient({
@@ -106,7 +106,7 @@ export function BillingClient({
               </Button>
             ) : (
               <Button variant="brand" onClick={handleSubscribe} disabled={loading}>
-                {loading ? "Starting checkout…" : "Subscribe"}
+                {loading ? "Starting checkout…" : "Start 7-day free trial"}
               </Button>
             )}
           </div>

@@ -26,6 +26,22 @@ export function isStripeConfigured(): boolean {
  * Reuses an existing Stripe customer if this business already has one
  * (e.g. from a previous cancelled subscription).
  */
+/**
+ * Creates a Stripe Checkout session for the single HavnLine
+ * subscription price and returns the URL to redirect the owner to.
+ * Reuses an existing Stripe customer if this business already has one
+ * (e.g. from a previous cancelled subscription).
+ *
+ * Every new subscription automatically includes a free trial (see
+ * TRIAL_PERIOD_DAYS below) — the customer is charged nothing for the
+ * first week, and Stripe automatically starts billing the full price
+ * at the end of it unless they cancel first. This is the standard,
+ * correct way to run "1 week free, then $X/month" — no separate
+ * "free version" of the product is needed, it's the same subscription
+ * with a trial attached.
+ */
+const TRIAL_PERIOD_DAYS = parseInt(process.env.TRIAL_PERIOD_DAYS || "7", 10);
+
 export async function createCheckoutSession(input: {
   businessId: string;
   businessName: string;
@@ -50,6 +66,7 @@ export async function createCheckoutSession(input: {
       customer_email: input.existingStripeCustomerId ? undefined : input.customerEmail,
       client_reference_id: input.businessId,
       subscription_data: {
+        trial_period_days: TRIAL_PERIOD_DAYS,
         metadata: { business_id: input.businessId, business_name: input.businessName },
       },
       metadata: { business_id: input.businessId },
