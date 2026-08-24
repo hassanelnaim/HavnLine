@@ -95,44 +95,36 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* ---------- Problem: real, sourced stat — now the opener ---------- */}
-        <section className="bg-ink py-20">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <div className="flex items-center gap-2 text-[#8A93A6]">
-                  <PhoneMissed className="h-4 w-4" />
-                  <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
-                </div>
-                <div className="mt-3 font-display text-[84px] font-semibold leading-none text-white">
-                  62%
-                </div>
-                <p className="mt-3 text-[13px] text-[#8A93A6]">
-                  of calls to small businesses go unanswered.
-                  <br />
-                  Source: 411 Locals study, 85 businesses across 58 industries.
-                </p>
-              </div>
-              <div className="space-y-5">
-                <p className="text-[16px] leading-relaxed text-white">
-                  Every one of those calls is a customer who was ready to book — a leaking
-                  pipe, a toothache, a car that won&apos;t start. Most won&apos;t leave a
-                  voicemail. Research consistently shows{" "}
-                  <span className="font-semibold text-white">most callers who reach voicemail never call back</span> —
-                  they just call the next name on the list.
-                </p>
-                <p className="text-[16px] leading-relaxed text-white">
-                  You can&apos;t answer the phone every single time — you&apos;re running the
-                  business, not sitting by it. HavnLine can. It picks up every call, every
-                  time, and handles it the way you would.
-                </p>
-              </div>
+        {/* ---------- Problem: real, sourced stat — one integrated statement, not a floating badge ---------- */}
+        <section className="bg-ink py-16">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="flex items-center gap-2 text-[#8A93A6]">
+              <PhoneMissed className="h-4 w-4" />
+              <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
             </div>
+            <h2 className="mt-4 font-display text-[32px] font-semibold leading-[1.2] text-white sm:text-[40px]">
+              <span className="text-brand-light">62%</span> of calls to small businesses go
+              unanswered.
+            </h2>
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[#B8C0D0]">
+              Every one of those calls is a customer who was ready to book — a leaking pipe, a
+              toothache, a car that won&apos;t start. Most won&apos;t leave a voicemail.
+              Research consistently shows most callers who reach voicemail never call back —
+              they just call the next name on the list.
+            </p>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#B8C0D0]">
+              You can&apos;t answer the phone every single time — you&apos;re running the
+              business, not sitting by it. HavnLine can. It picks up every call, every time,
+              and handles it the way you would.
+            </p>
+            <p className="mt-5 text-[11.5px] text-[#6B7488]">
+              Source: 411 Locals study, 85 businesses across 58 industries.
+            </p>
           </div>
         </section>
 
         {/* ---------- Hero: headline, CTA, before/after comparison ---------- */}
-        <section className="mx-auto max-w-6xl px-6 pb-20 pt-16">
+        <section className="mx-auto max-w-6xl px-6 pb-14 pt-12">
           <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11.5px] font-medium text-text-muted">
@@ -158,7 +150,7 @@ export default function LandingPage() {
                 </Button>
               </div>
               <p className="mt-3 text-[12px] text-text-faint">
-                7 days free, then $200/month. Cancel anytime.
+                7 days free, then $199/month. Cancel anytime.
               </p>
             </div>
 
@@ -202,12 +194,12 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- Features ---------- */}
-        <section className="mx-auto max-w-6xl px-6 py-24">
+        <section className="mx-auto max-w-6xl px-6 py-16">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">What it actually does</p>
           <h2 className="mt-3 max-w-xl font-display text-[30px] font-semibold leading-tight text-ink">
             Everything a great front-desk hire would do — without the payroll.
           </h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
               <div key={f.title} className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand-dark">
@@ -221,7 +213,7 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- How it works ---------- */}
-        <section className="border-y border-border bg-card py-24">
+        <section className="border-y border-border bg-card py-16">
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
               From setup to live in three steps
@@ -250,12 +242,12 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- Pricing ---------- */}
-        <section className="mx-auto max-w-6xl px-6 py-24">
+        <section className="mx-auto max-w-6xl px-6 py-16">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Pricing</p>
           <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">One plan. Everything included.</h2>
-          <div className="mt-8 max-w-md rounded-2xl border-2 border-brand bg-card p-8 shadow-card">
+          <div className="mt-7 max-w-md rounded-2xl border-2 border-brand bg-card p-8 shadow-card">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-[44px] font-semibold text-ink">$200</span>
+              <span className="font-display text-[44px] font-semibold text-ink">$199</span>
               <span className="text-[14px] text-text-muted">/month</span>
             </div>
             <p className="mt-1 text-[13px] text-text-muted">7 days free, then billed monthly. Cancel anytime.</p>
@@ -283,7 +275,7 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- FAQ ---------- */}
-        <section className="border-t border-border bg-card py-24">
+        <section className="border-t border-border bg-card py-16">
           <div className="mx-auto max-w-3xl px-6">
             <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Questions</p>
             <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">Before you get started</h2>
@@ -299,7 +291,7 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- Final CTA ---------- */}
-        <section className="bg-ink py-20">
+        <section className="bg-ink py-16">
           <div className="mx-auto max-w-6xl px-6 text-center">
             <h2 className="font-display text-[30px] font-semibold text-white sm:text-[36px]">
               Stop losing customers to a phone that doesn&apos;t answer.
