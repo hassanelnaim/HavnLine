@@ -1,12 +1,80 @@
 import Link from "next/link";
-import { ArrowRight, Phone, Calendar, MessageSquareText } from "lucide-react";
+import {
+  ArrowRight,
+  Phone,
+  Calendar,
+  PhoneOff,
+  MessageSquareText,
+  BookOpen,
+  ShieldCheck,
+  Mic2,
+  CalendarClock,
+  Check,
+  Globe,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
 
+const FEATURES = [
+  {
+    icon: Phone,
+    title: "Answers every call, day or night",
+    detail: "Whether it's 2pm or 2am, HavnLine picks up, sounds natural, and knows exactly what your business offers.",
+  },
+  {
+    icon: CalendarClock,
+    title: "Books real appointments",
+    detail: "Checks your actual calendar, confirms a time that works, and only ever offers slots during your real hours.",
+  },
+  {
+    icon: Globe,
+    title: "Learns your business in minutes",
+    detail: "Paste your website and HavnLine reads it — pulling in your FAQs, services, and policies automatically.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Knows when to hand off",
+    detail: "Refunds, complaints, or a customer who just wants a person — HavnLine escalates the right things to you, and handles everything else on its own.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Texts a confirmation automatically",
+    detail: "Every booking gets a real SMS confirmation, sent the moment the call ends — no extra step for you.",
+  },
+  {
+    icon: Mic2,
+    title: "Sounds like a real person",
+    detail: "Pick from a library of natural voices, or connect your own — not a robotic phone tree.",
+  },
+];
+
 const STEPS = [
-  { label: "Business information", detail: "Tell HavnLine who you are and what you offer." },
-  { label: "AI personality", detail: "Pick a name, tone, and what it's allowed to do." },
-  { label: "Go live", detail: "Get a phone number and turn your receptionist on." },
+  { label: "Business information", detail: "Tell HavnLine who you are, what you offer, and your real hours." },
+  { label: "AI personality", detail: "Pick a name, a voice, a tone, and exactly what it's allowed to do." },
+  { label: "Go live", detail: "Get a phone number — or keep your current one — and turn it on." },
+];
+
+const FAQS = [
+  {
+    q: "Will it sound like a robot?",
+    a: "No. HavnLine uses natural, realistic voices — not an old-school phone tree. Customers talk to it the way they'd talk to a person, and it responds the same way.",
+  },
+  {
+    q: "What if it can't answer something?",
+    a: "It hands off to you instead of guessing. HavnLine never invents prices, policies, or availability — if it doesn't know, it says so honestly and flags it for you to follow up on.",
+  },
+  {
+    q: "Do I need a new phone number or new hardware?",
+    a: "No. Forward your existing business number, or use a new one we provide — either way, customers keep calling the number they already know.",
+  },
+  {
+    q: "What happens after my free trial?",
+    a: "You're billed automatically once the trial ends, unless you cancel first. No surprise commitment — cancel anytime from your dashboard.",
+  },
+  {
+    q: "Can I control what it says?",
+    a: "Yes. You set its personality, voice, rules, and exactly what it's allowed to do — no prompt-writing or technical setup required.",
+  },
 ];
 
 export default function LandingPage() {
@@ -26,97 +94,224 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pb-24 pt-16">
-        <section className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11.5px] font-medium text-text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-ring" />
-              Now answering calls for small businesses
-            </span>
-            <h1 className="mt-6 max-w-xl font-display text-[42px] font-semibold leading-[1.08] text-ink sm:text-[52px]">
-              An AI receptionist that actually knows your business.
-            </h1>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-text-muted">
-              HavnLine answers your phone, books appointments, and hands off anything it
-              shouldn&apos;t handle alone — so every caller gets a real answer, and nothing
-              falls through the cracks.
-            </p>
-            <div className="mt-8 flex items-center gap-3">
-              <Button variant="brand" size="lg" asChild>
-                <Link href="/signup">
-                  Set up your receptionist <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/login">I have an account</Link>
-              </Button>
+      <main>
+        {/* ---------- Hero ---------- */}
+        <section className="mx-auto max-w-6xl px-6 pb-20 pt-14">
+          <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11.5px] font-medium text-text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-ring" />
+                Now answering calls for small businesses
+              </span>
+              <h1 className="mt-6 max-w-xl font-display text-[42px] font-semibold leading-[1.08] text-ink sm:text-[52px]">
+                An AI receptionist that actually knows your business.
+              </h1>
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-text-muted">
+                HavnLine answers your phone, books real appointments, and hands off anything
+                it shouldn&apos;t handle alone — so every caller gets a real answer, day or
+                night, and nothing falls through the cracks.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Button variant="brand" size="lg" asChild>
+                  <Link href="/signup">
+                    Start your free trial <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link href="/login">I have an account</Link>
+                </Button>
+              </div>
+              <p className="mt-3 text-[12px] text-text-faint">
+                7 days free, then $200/month. Cancel anytime.
+              </p>
             </div>
-          </div>
 
-          <div className="relative">
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-              <div className="flex items-center justify-between border-b border-border-soft pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-[13px] font-semibold text-white">
-                    A
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-semibold text-ink">Alex — Riverside Auto &amp; Tire</div>
-                    <div className="flex items-center gap-1.5 text-[11.5px] text-success">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-ring" />
-                      Online
+            <div className="relative">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="flex items-center justify-between border-b border-border-soft pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-[13px] font-semibold text-white">
+                      A
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-semibold text-ink">Alex — Riverside Auto &amp; Tire</div>
+                      <div className="flex items-center gap-1.5 text-[11.5px] text-success">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-ring" />
+                        Online
+                      </div>
                     </div>
                   </div>
+                  <Phone className="h-4 w-4 text-text-faint" />
                 </div>
-                <Phone className="h-4 w-4 text-text-faint" />
-              </div>
-              <div className="mt-4 space-y-2.5">
-                <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
-                  Hi, do you have anything open tomorrow for an oil change?
-                </div>
-                <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-border-soft bg-paper px-3.5 py-2.5 text-[13px] text-text">
-                  I have 9:00 or 9:45 AM open tomorrow for an Oil Change — $59.99, about 45
-                  minutes. Which works better?
-                </div>
-                <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
-                  9:00 works.
-                </div>
-                <div className="flex items-center gap-2 rounded-lg bg-brand-soft px-3 py-2 text-[11.5px] font-medium text-brand-dark">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Appointment booked — 9:00 AM tomorrow
+                <div className="mt-4 space-y-2.5">
+                  <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
+                    Hi, do you have anything open tomorrow for an oil change?
+                  </div>
+                  <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-border-soft bg-paper px-3.5 py-2.5 text-[13px] text-text">
+                    I have 9:00 or 9:45 AM open tomorrow for an Oil Change — $59.99, about 45
+                    minutes. Which works better?
+                  </div>
+                  <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
+                    9:00 works.
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-brand-soft px-3 py-2 text-[11.5px] font-medium text-brand-dark">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Appointment booked — 9:00 AM tomorrow
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-28">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
-            From setup to live in three steps
-          </p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            {STEPS.map((step, i) => (
-              <div key={step.label} className="rounded-2xl border border-border bg-card p-5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-paper font-mono text-[12px] font-medium text-text-muted">
-                  {i + 1}
+        {/* ---------- Problem: real, sourced stat ---------- */}
+        <section className="bg-ink py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <div className="flex items-center gap-2 text-[#8A93A6]">
+                  <PhoneOff className="h-4 w-4" />
+                  <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
                 </div>
-                <div className="mt-4 font-display text-[15px] font-semibold text-ink">
-                  {step.label}
+                <div className="mt-3 font-display text-[84px] font-semibold leading-none text-white">
+                  62%
                 </div>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{step.detail}</p>
+                <p className="mt-3 text-[13px] text-[#8A93A6]">
+                  of calls to small businesses go unanswered.
+                  <br />
+                  Source: 411 Locals study, 85 businesses across 58 industries.
+                </p>
+              </div>
+              <div className="space-y-5">
+                <p className="text-[16px] leading-relaxed text-white">
+                  Every one of those calls is a customer who was ready to book — a leaking
+                  pipe, a toothache, a car that won&apos;t start. Most won&apos;t leave a
+                  voicemail. Research consistently shows{" "}
+                  <span className="font-semibold text-white">most callers who reach voicemail never call back</span> —
+                  they just call the next name on the list.
+                </p>
+                <p className="text-[16px] leading-relaxed text-white">
+                  You can&apos;t answer the phone every single time — you&apos;re running the
+                  business, not sitting by it. HavnLine can. It picks up every call, every
+                  time, and handles it the way you would.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------- Features ---------- */}
+        <section className="mx-auto max-w-6xl px-6 py-24">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">What it actually does</p>
+          <h2 className="mt-3 max-w-xl font-display text-[30px] font-semibold leading-tight text-ink">
+            Everything a great front-desk hire would do — without the payroll.
+          </h2>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand-dark">
+                  <f.icon className="h-4.5 w-4.5" />
+                </div>
+                <div className="mt-4 font-display text-[15px] font-semibold text-ink">{f.title}</div>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{f.detail}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-16 flex items-center gap-3 rounded-2xl border border-border bg-card p-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
-            <MessageSquareText className="h-[18px] w-[18px]" />
+        {/* ---------- How it works ---------- */}
+        <section className="border-y border-border bg-card py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
+              From setup to live in three steps
+            </p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              {STEPS.map((step, i) => (
+                <div key={step.label} className="rounded-2xl border border-border bg-paper p-5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card font-mono text-[12px] font-medium text-text-muted">
+                    {i + 1}
+                  </div>
+                  <div className="mt-4 font-display text-[15px] font-semibold text-ink">{step.label}</div>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{step.detail}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border bg-paper p-6">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+                <BookOpen className="h-[18px] w-[18px]" />
+              </div>
+              <p className="text-[13.5px] text-text-muted">
+                No APIs, no prompts, no webhooks to configure. You describe your business in
+                plain language — HavnLine handles the technical part behind the scenes.
+              </p>
+            </div>
           </div>
-          <p className="text-[13.5px] text-text-muted">
-            No APIs, no prompts, no webhooks to configure. You describe your business in
-            plain language — HavnLine handles the technical part behind the scenes.
-          </p>
+        </section>
+
+        {/* ---------- Pricing ---------- */}
+        <section className="mx-auto max-w-6xl px-6 py-24">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Pricing</p>
+          <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">One plan. Everything included.</h2>
+          <div className="mt-8 max-w-md rounded-2xl border-2 border-brand bg-card p-8 shadow-card">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-[44px] font-semibold text-ink">$200</span>
+              <span className="text-[14px] text-text-muted">/month</span>
+            </div>
+            <p className="mt-1 text-[13px] text-text-muted">7 days free, then billed monthly. Cancel anytime.</p>
+            <ul className="mt-6 space-y-2.5">
+              {[
+                "Unlimited calls answered",
+                "Real appointment booking",
+                "Automatic SMS confirmations",
+                "Google Calendar sync",
+                "Custom AI voice & personality",
+                "Escalation to you when it matters",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5 text-[13.5px] text-text">
+                  <Check className="h-4 w-4 shrink-0 text-brand" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Button variant="brand" size="lg" className="mt-7 w-full" asChild>
+              <Link href="/signup">
+                Start your free trial <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        {/* ---------- FAQ ---------- */}
+        <section className="border-t border-border bg-card py-24">
+          <div className="mx-auto max-w-3xl px-6">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Questions</p>
+            <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">Before you get started</h2>
+            <div className="mt-8 divide-y divide-border-soft">
+              {FAQS.map((item) => (
+                <div key={item.q} className="py-5">
+                  <div className="font-display text-[15px] font-semibold text-ink">{item.q}</div>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ---------- Final CTA ---------- */}
+        <section className="bg-ink py-20">
+          <div className="mx-auto max-w-6xl px-6 text-center">
+            <h2 className="font-display text-[30px] font-semibold text-white sm:text-[36px]">
+              Stop losing customers to a phone that doesn&apos;t answer.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-[14px] text-[#8A93A6]">
+              Set up your receptionist in minutes. First 7 days are free.
+            </p>
+            <Button variant="brand" size="lg" className="mt-7" asChild>
+              <Link href="/signup">
+                Start your free trial <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </section>
       </main>
 

@@ -239,27 +239,49 @@ export function IntegrationsClient({
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-text">
                 This is a setting on your <em>existing</em> phone line, not something HavnLine can turn on for
-                you — every carrier and phone system does it slightly differently:
+                you — every carrier and phone system does it slightly differently. Find yours below:
               </p>
-              <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-text">
+              <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-text">
                 <li>
-                  <strong>Most US mobile carriers</strong> (Verizon, AT&amp;T, T-Mobile): dial{" "}
-                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*72</code> followed
-                  by your HavnLine number, then call. To turn it back off later, dial{" "}
-                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px]">*73</code>.
+                  <span className="font-semibold text-text">Verizon or US Cellular:</span> dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*72</code>{" "}
+                  followed by your HavnLine number, then call. To turn it back off, dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*73</code>.
                 </li>
                 <li>
-                  <strong>Landline or business phone system</strong> (e.g. RingCentral, a desk phone, an office
-                  PBX): look for &quot;call forwarding&quot; in your provider&apos;s online account settings or
-                  admin panel, and enter your HavnLine number there.
+                  <span className="font-semibold text-text">AT&amp;T:</span> dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*21*</code>{" "}
+                  followed by your HavnLine number, then{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">#</code>, then
+                  call. To turn it off, dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">##21#</code>.
                 </li>
                 <li>
-                  <strong>Google Voice:</strong> Settings → Phones → add your HavnLine number as a linked number.
+                  <span className="font-semibold text-text">T-Mobile (including Metro, Mint, Ultra Mobile):</span>{" "}
+                  dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">**21*</code>{" "}
+                  followed by your HavnLine number, then{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">#</code>, then
+                  call — if that says invalid, try a single star (
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*21*</code>
+                  ...
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">#</code>)
+                  instead. To turn it off, dial{" "}
+                  <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">##21#</code>.
+                </li>
+                <li>
+                  <span className="font-semibold text-text">Landline or business phone system</span> (e.g.
+                  RingCentral, a desk phone, an office PBX): look for &quot;call forwarding&quot; in your
+                  provider&apos;s online account settings or admin panel, and enter your HavnLine number there.
+                </li>
+                <li>
+                  <span className="font-semibold text-text">Google Voice:</span> Settings → Phones → add your
+                  HavnLine number as a linked number.
                 </li>
               </ul>
-              <p className="mt-3 text-[12px] text-text-faint">
-                Exact steps vary by provider — if these don&apos;t match yours, search &quot;[your carrier] call
-                forwarding&quot; or contact their support.
+              <p className="mt-3 text-[12px] text-text-muted">
+                Star codes can vary slightly by phone and account type — if none of these work, your carrier&apos;s
+                support line can turn it on for you in under a minute.
               </p>
             </div>
           </CardContent>
