@@ -2,8 +2,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   Phone,
-  Calendar,
-  PhoneOff,
+  PhoneMissed,
+  PhoneCall,
   MessageSquareText,
   BookOpen,
   ShieldCheck,
@@ -95,8 +95,44 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* ---------- Hero ---------- */}
-        <section className="mx-auto max-w-6xl px-6 pb-20 pt-14">
+        {/* ---------- Problem: real, sourced stat — now the opener ---------- */}
+        <section className="bg-ink py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <div className="flex items-center gap-2 text-[#8A93A6]">
+                  <PhoneMissed className="h-4 w-4" />
+                  <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
+                </div>
+                <div className="mt-3 font-display text-[84px] font-semibold leading-none text-white">
+                  62%
+                </div>
+                <p className="mt-3 text-[13px] text-[#8A93A6]">
+                  of calls to small businesses go unanswered.
+                  <br />
+                  Source: 411 Locals study, 85 businesses across 58 industries.
+                </p>
+              </div>
+              <div className="space-y-5">
+                <p className="text-[16px] leading-relaxed text-white">
+                  Every one of those calls is a customer who was ready to book — a leaking
+                  pipe, a toothache, a car that won&apos;t start. Most won&apos;t leave a
+                  voicemail. Research consistently shows{" "}
+                  <span className="font-semibold text-white">most callers who reach voicemail never call back</span> —
+                  they just call the next name on the list.
+                </p>
+                <p className="text-[16px] leading-relaxed text-white">
+                  You can&apos;t answer the phone every single time — you&apos;re running the
+                  business, not sitting by it. HavnLine can. It picks up every call, every
+                  time, and handles it the way you would.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------- Hero: headline, CTA, before/after comparison ---------- */}
+        <section className="mx-auto max-w-6xl px-6 pb-20 pt-16">
           <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11.5px] font-medium text-text-muted">
@@ -126,75 +162,40 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="relative">
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                <div className="flex items-center justify-between border-b border-border-soft pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-[13px] font-semibold text-white">
-                      A
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-semibold text-ink">Alex — Riverside Auto &amp; Tire</div>
-                      <div className="flex items-center gap-1.5 text-[11.5px] text-success">
-                        <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-ring" />
-                        Online
-                      </div>
-                    </div>
-                  </div>
-                  <Phone className="h-4 w-4 text-text-faint" />
+            {/* Before/after: same call, two outcomes */}
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-border bg-card p-5 opacity-80">
+                <div className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-wide text-text-faint">
+                  Without HavnLine
                 </div>
-                <div className="mt-4 space-y-2.5">
-                  <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
-                    Hi, do you have anything open tomorrow for an oil change?
+                <div className="mt-3 flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger">
+                    <PhoneMissed className="h-4.5 w-4.5" />
                   </div>
-                  <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-border-soft bg-paper px-3.5 py-2.5 text-[13px] text-text">
-                    I have 9:00 or 9:45 AM open tomorrow for an Oil Change — $59.99, about 45
-                    minutes. Which works better?
-                  </div>
-                  <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-ink px-3.5 py-2.5 text-[13px] text-white">
-                    9:00 works.
-                  </div>
-                  <div className="flex items-center gap-2 rounded-lg bg-brand-soft px-3 py-2 text-[11.5px] font-medium text-brand-dark">
-                    <Calendar className="h-3.5 w-3.5" />
-                    Appointment booked — 9:00 AM tomorrow
+                  <div>
+                    <div className="text-[13.5px] font-medium text-text">Tuesday, 9:47 PM — missed call</div>
+                    <div className="mt-0.5 text-[12.5px] text-text-muted">No voicemail left.</div>
+                    <div className="mt-1.5 text-[12px] text-danger">Customer called a competitor 12 minutes later.</div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* ---------- Problem: real, sourced stat ---------- */}
-        <section className="bg-ink py-20">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <div className="flex items-center gap-2 text-[#8A93A6]">
-                  <PhoneOff className="h-4 w-4" />
-                  <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
+              <div className="rounded-2xl border-2 border-brand bg-card p-5 shadow-card">
+                <div className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                  With HavnLine
                 </div>
-                <div className="mt-3 font-display text-[84px] font-semibold leading-none text-white">
-                  62%
+                <div className="mt-3 flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+                    <PhoneCall className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <div className="text-[13.5px] font-medium text-text">Tuesday, 9:47 PM — answered by Alex</div>
+                    <div className="mt-0.5 text-[12.5px] text-text-muted">Booked for Wednesday, 9:00 AM.</div>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-brand-dark">
+                      <Check className="h-3.5 w-3.5" /> Confirmation texted automatically
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-3 text-[13px] text-[#8A93A6]">
-                  of calls to small businesses go unanswered.
-                  <br />
-                  Source: 411 Locals study, 85 businesses across 58 industries.
-                </p>
-              </div>
-              <div className="space-y-5">
-                <p className="text-[16px] leading-relaxed text-white">
-                  Every one of those calls is a customer who was ready to book — a leaking
-                  pipe, a toothache, a car that won&apos;t start. Most won&apos;t leave a
-                  voicemail. Research consistently shows{" "}
-                  <span className="font-semibold text-white">most callers who reach voicemail never call back</span> —
-                  they just call the next name on the list.
-                </p>
-                <p className="text-[16px] leading-relaxed text-white">
-                  You can&apos;t answer the phone every single time — you&apos;re running the
-                  business, not sitting by it. HavnLine can. It picks up every call, every
-                  time, and handles it the way you would.
-                </p>
               </div>
             </div>
           </div>
