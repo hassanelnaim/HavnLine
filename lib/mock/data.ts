@@ -445,15 +445,6 @@ export const mockIntegrations: DbIntegration[] = [
     metadata: null,
   },
   {
-    id: "int_outlook",
-    business_id: BUSINESS_ID,
-    provider: "microsoft_outlook",
-    status: "not_connected",
-    external_account_id: null,
-    connected_at: null,
-    metadata: null,
-  },
-  {
     id: "int_twilio",
     business_id: BUSINESS_ID,
     provider: "twilio",

@@ -6,7 +6,6 @@ import { getCurrentBusinessId } from "@/lib/supabase/business";
 const ALL_PROVIDERS: IntegrationProvider[] = [
   "google_calendar",
   "icloud_calendar",
-  "microsoft_outlook",
   "twilio",
   "sms",
   "voice_provider",
@@ -16,7 +15,9 @@ const ALL_PROVIDERS: IntegrationProvider[] = [
 // whatever Twilio number is provisioned (no separate connection step),
 // and voice selection is already built into the AI Employee page — 
 // neither of those actually needs a "coming soon" state.
-const COMING_SOON: IntegrationProvider[] = ["microsoft_outlook"];
+// Nothing is in "coming soon" state right now — every listed provider
+// is either fully built or (SMS/Voice) automatically available.
+const COMING_SOON: IntegrationProvider[] = [];
 
 function defaultRow(businessId: string, provider: IntegrationProvider): DbIntegration {
   return {

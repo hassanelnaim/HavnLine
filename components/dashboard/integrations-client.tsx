@@ -160,8 +160,15 @@ export function IntegrationsClient({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {integrations.map((integration) => {
+      {(() => {
+        const calendarIntegrations = integrations.filter(
+          (i) => i.provider === "google_calendar" || i.provider === "icloud_calendar"
+        );
+        const commsIntegrations = integrations.filter(
+          (i) => i.provider === "twilio" || i.provider === "sms" || i.provider === "voice_provider"
+        );
+
+        function renderCard(integration: DbIntegration) {
           const meta = PROVIDER_META[integration.provider];
           const Icon = meta.icon;
           const phoneNumber =
@@ -172,11 +179,7 @@ export function IntegrationsClient({
           return (
             <Card
               key={integration.id}
-              className={
-                integration.provider === "twilio" || integration.provider === "icloud_calendar"
-                  ? "sm:col-span-2"
-                  : undefined
-              }
+              className={integration.provider === "icloud_calendar" && icloudExpanded ? "sm:col-span-2" : undefined}
             >
               <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5">
                 <div className="flex items-start gap-3">
@@ -211,12 +214,12 @@ export function IntegrationsClient({
                     </Button>
                   )
                 ) : integration.provider === "twilio" ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input
-                      placeholder="Area code (e.g. 734)"
+                      placeholder="Area code"
                       value={areaCode}
                       onChange={(e) => setAreaCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                      className="w-40"
+                      className="w-24"
                     />
                     <Button
                       size="sm"
@@ -224,7 +227,7 @@ export function IntegrationsClient({
                       onClick={twilioConnected ? handleChangeNumber : handleGetNumber}
                       disabled={provisioning}
                     >
-                      {provisioning ? "Working…" : twilioConnected ? "Get a different number" : "Get a number"}
+                      {provisioning ? "Working…" : twilioConnected ? "New number" : "Get a number"}
                     </Button>
                   </div>
                 ) : integration.provider === "voice_provider" ? (
@@ -297,8 +300,23 @@ export function IntegrationsClient({
               )}
             </Card>
           );
-        })}
-      </div>
+        }
+
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-2.5 text-[12px] font-semibold uppercase tracking-wide text-text-faint">Calendar</h3>
+              <div className="grid gap-3 sm:grid-cols-2">{calendarIntegrations.map(renderCard)}</div>
+            </div>
+            <div>
+              <h3 className="mb-2.5 text-[12px] font-semibold uppercase tracking-wide text-text-faint">
+                Phone, SMS &amp; Voice
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{commsIntegrations.map(renderCard)}</div>
+            </div>
+          </div>
+        );
+      })()}
 
       <Card className="mt-4">
         <CardHeader>
