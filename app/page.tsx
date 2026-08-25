@@ -11,6 +11,13 @@ import {
   CalendarClock,
   Check,
   Globe,
+  Wrench,
+  Scissors,
+  Stethoscope,
+  Scale,
+  Hammer,
+  UtensilsCrossed,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
@@ -46,6 +53,16 @@ const FEATURES = [
     title: "Sounds like a real person",
     detail: "Pick from a library of natural voices, or connect your own — not a robotic phone tree.",
   },
+];
+
+const INDUSTRIES = [
+  { icon: Wrench, label: "Auto Repair" },
+  { icon: Scissors, label: "Salon & Spa" },
+  { icon: HeartPulse, label: "Dental Practice" },
+  { icon: Stethoscope, label: "Medical Practice" },
+  { icon: Scale, label: "Law Firm" },
+  { icon: Hammer, label: "Home Services" },
+  { icon: UtensilsCrossed, label: "Restaurant" },
 ];
 
 const STEPS = [
@@ -95,24 +112,24 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* ---------- Problem: real, sourced stat — one integrated statement, not a floating badge ---------- */}
+        {/* ---------- Problem: real, sourced stat — centered, text-only ---------- */}
         <section className="bg-ink py-16">
-          <div className="mx-auto max-w-4xl px-6">
-            <div className="flex items-center gap-2 text-[#8A93A6]">
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <div className="flex items-center justify-center gap-2 text-[#8A93A6]">
               <PhoneMissed className="h-4 w-4" />
               <span className="text-[12px] font-semibold uppercase tracking-wide">The real cost of an unanswered phone</span>
             </div>
-            <h2 className="mt-4 font-display text-[32px] font-semibold leading-[1.2] text-white sm:text-[40px]">
+            <h2 className="mx-auto mt-4 max-w-2xl font-display text-[32px] font-semibold leading-[1.2] text-white sm:text-[40px]">
               <span className="text-brand-light">62%</span> of calls to small businesses go
               unanswered.
             </h2>
-            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[#B8C0D0]">
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[#B8C0D0]">
               Every one of those calls is a customer who was ready to book — a leaking pipe, a
               toothache, a car that won&apos;t start. Most won&apos;t leave a voicemail.
               Research consistently shows most callers who reach voicemail never call back —
               they just call the next name on the list.
             </p>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#B8C0D0]">
+            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-[#B8C0D0]">
               You can&apos;t answer the phone every single time — you&apos;re running the
               business, not sitting by it. HavnLine can. It picks up every call, every time,
               and handles it the way you would.
@@ -123,7 +140,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ---------- Hero: headline, CTA, before/after comparison ---------- */}
+        {/* ---------- Hero: paired with a visual, stays left-aligned ---------- */}
         <section className="mx-auto max-w-6xl px-6 pb-14 pt-12">
           <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
@@ -193,12 +210,35 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ---------- Built for your industry ---------- */}
+        <section className="border-y border-border bg-card py-16">
+          <div className="mx-auto max-w-4xl px-6 text-center">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Built for real businesses</p>
+            <h2 className="mt-3 font-display text-[26px] font-semibold text-ink">
+              If you take appointments over the phone, this is for you.
+            </h2>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              {INDUSTRIES.map((ind) => (
+                <div
+                  key={ind.label}
+                  className="flex items-center gap-2 rounded-full border border-border bg-paper px-4 py-2 text-[13px] font-medium text-text"
+                >
+                  <ind.icon className="h-4 w-4 text-brand" />
+                  {ind.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ---------- Features ---------- */}
         <section className="mx-auto max-w-6xl px-6 py-16">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">What it actually does</p>
-          <h2 className="mt-3 max-w-xl font-display text-[30px] font-semibold leading-tight text-ink">
-            Everything a great front-desk hire would do — without the payroll.
-          </h2>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">What it actually does</p>
+            <h2 className="mt-3 font-display text-[30px] font-semibold leading-tight text-ink">
+              Everything a great front-desk hire would do — without the payroll.
+            </h2>
+          </div>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
               <div key={f.title} className="rounded-2xl border border-border bg-card p-5">
@@ -215,10 +255,12 @@ export default function LandingPage() {
         {/* ---------- How it works ---------- */}
         <section className="border-y border-border bg-card py-16">
           <div className="mx-auto max-w-6xl px-6">
-            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
-              From setup to live in three steps
-            </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">
+                From setup to live in three steps
+              </p>
+            </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {STEPS.map((step, i) => (
                 <div key={step.label} className="rounded-2xl border border-border bg-paper p-5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card font-mono text-[12px] font-medium text-text-muted">
@@ -241,17 +283,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ---------- Pricing ---------- */}
+        {/* ---------- Pricing: centered, single focal card ---------- */}
         <section className="mx-auto max-w-6xl px-6 py-16">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Pricing</p>
-          <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">One plan. Everything included.</h2>
-          <div className="mt-7 max-w-md rounded-2xl border-2 border-brand bg-card p-8 shadow-card">
-            <div className="flex items-baseline gap-1.5">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Pricing</p>
+            <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">One plan. Everything included.</h2>
+          </div>
+          <div className="mx-auto mt-7 max-w-md rounded-2xl border-2 border-brand bg-card p-8 text-center shadow-card">
+            <div className="flex items-baseline justify-center gap-1.5">
               <span className="font-display text-[44px] font-semibold text-ink">$199</span>
               <span className="text-[14px] text-text-muted">/month</span>
             </div>
             <p className="mt-1 text-[13px] text-text-muted">7 days free, then billed monthly. Cancel anytime.</p>
-            <ul className="mt-6 space-y-2.5">
+            <ul className="mx-auto mt-6 inline-block space-y-2.5 text-left">
               {[
                 "Unlimited calls answered",
                 "Real appointment booking",
@@ -277,8 +321,10 @@ export default function LandingPage() {
         {/* ---------- FAQ ---------- */}
         <section className="border-t border-border bg-card py-16">
           <div className="mx-auto max-w-3xl px-6">
-            <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Questions</p>
-            <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">Before you get started</h2>
+            <div className="text-center">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-text-faint">Questions</p>
+              <h2 className="mt-3 font-display text-[30px] font-semibold text-ink">Before you get started</h2>
+            </div>
             <div className="mt-8 divide-y divide-border-soft">
               {FAQS.map((item) => (
                 <div key={item.q} className="py-5">
