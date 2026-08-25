@@ -41,8 +41,12 @@ export default function SignupPage({
         </form>
         <p className="mt-4 text-center text-[11.5px] text-text-faint">
           By creating an account, you agree to our{" "}
-          <Link href="/policies" className="underline hover:text-text-muted">
-            Terms and Privacy Policy
+          <Link href="/terms" className="underline hover:text-text-muted">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-text-muted">
+            Privacy Policy
           </Link>
           .
         </p>

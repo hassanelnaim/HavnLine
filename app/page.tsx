@@ -312,8 +312,8 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-[12px] text-text-faint">
           <span>© {new Date().getFullYear()} HavnLine</span>
           <div className="flex items-center gap-4">
-            <Link href="/policies" className="hover:text-text">Terms</Link>
-            <Link href="/policies#privacy" className="hover:text-text">Privacy</Link>
+            <Link href="/terms" className="hover:text-text">Terms</Link>
+            <Link href="/privacy" className="hover:text-text">Privacy</Link>
             <span>Front desk, automated.</span>
           </div>
         </div>
