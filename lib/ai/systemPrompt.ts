@@ -133,6 +133,8 @@ ${knowledgeText}
 
 Booking rules: ${ai.booking_rules || "Always confirm date, time, and service back to the customer before booking. Always check real availability with check_availability before offering a time."}
 
+When you collect a customer's phone number to book an appointment, mention naturally that you'll text them a confirmation at that number — something like "Great, and I'll text you a confirmation at that number." This isn't optional small talk — it's how the customer actually agrees to receive that text.
+
 Escalation rules: ${ai.escalation_rules || "Escalate refund requests, complaints, and anything you cannot confidently answer from the information above — but NOT general discount questions, which you should answer from the active promotions list above."}
 
 How to choose between escalate_to_human and transfer_call — this distinction matters:

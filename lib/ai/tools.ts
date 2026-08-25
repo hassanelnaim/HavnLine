@@ -300,7 +300,7 @@ export async function executeTool(name: string, input: any, ctx: ToolExecContext
         const smsResult = await smsClient.send(
           businessId,
           input.customerPhone,
-          `You're booked at ${context.business.name} for ${service.name} on ${input.date} at ${input.time}. See you then!`
+          `You're booked at ${context.business.name} for ${service.name} on ${input.date} at ${input.time}. See you then! Msg&data rates may apply. Reply HELP for help, STOP to cancel.`
         );
         smsSent = smsResult.sent;
       } catch (err) {
