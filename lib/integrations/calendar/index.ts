@@ -2,7 +2,7 @@
  * integrations/calendar/index.ts
  *
  * CalendarProvider is the single interface the AI's check_availability
- * and book_appointment tools talk to. Two implementations exist:
+ * and book_appointment tools talk to. Three implementations exist:
  *
  *  - SupabaseCalendarProvider: computes availability from
  *    business_hours + existing `appointments` rows. Always works, no
@@ -13,8 +13,14 @@
  *    owner's real Google Calendar for busy blocks, and creates a real
  *    event when booking.
  *
+ *  - ICloudCalendarProvider: same idea, for a business owner who uses
+ *    Apple/iCloud Calendar instead — connected via CalDAV with an
+ *    app-specific password rather than OAuth.
+ *
  * getCalendarProviderForBusiness() picks the right one automatically.
- * Nothing else in the app should import a specific provider directly.
+ * If a business has both connected, Google takes priority since it was
+ * the first supported provider — nothing else in the app should import
+ * a specific provider directly.
  */
 
 export interface AvailabilitySlot {
@@ -50,7 +56,7 @@ export interface CreateEventResult {
 }
 
 export interface CalendarProvider {
-  id: "supabase" | "google_calendar";
+  id: "supabase" | "google_calendar" | "icloud_calendar";
   getAvailability(input: GetAvailabilityInput): Promise<GetAvailabilityResult>;
   createEvent(input: CreateEventInput): Promise<CreateEventResult>;
   updateEvent(eventId: string, businessId: string, input: Partial<CreateEventInput>): Promise<CreateEventResult>;
@@ -60,19 +66,24 @@ export interface CalendarProvider {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseCalendarProvider } from "./supabaseCalendarProvider";
 import { getGoogleCalendarProvider } from "./googleCalendarProvider";
+import { getICloudCalendarProvider } from "./icloudCalendarProvider";
 
 export async function getCalendarProviderForBusiness(businessId: string): Promise<CalendarProvider> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("integrations")
-    .select("*")
+    .select("provider")
     .eq("business_id", businessId)
-    .eq("provider", "google_calendar")
-    .eq("status", "connected")
-    .maybeSingle();
+    .in("provider", ["google_calendar", "icloud_calendar"])
+    .eq("status", "connected");
 
-  if (data) {
+  const connected = (data || []).map((r) => r.provider);
+
+  if (connected.includes("google_calendar")) {
     return getGoogleCalendarProvider();
+  }
+  if (connected.includes("icloud_calendar")) {
+    return getICloudCalendarProvider();
   }
   return supabaseCalendarProvider;
 }

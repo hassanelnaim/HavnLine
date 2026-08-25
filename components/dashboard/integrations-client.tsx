@@ -2,16 +2,19 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarDays, PhoneCall, MessageSquare, AudioLines, PhoneForwarded, Copy, Check, Globe } from "lucide-react";
+import { CalendarDays, PhoneCall, MessageSquare, AudioLines, PhoneForwarded, Copy, Check, Globe, Apple } from "lucide-react";
 import type { DbIntegration, IntegrationProvider } from "@/lib/database/types";
 import { provisionPhoneNumberAction, changePhoneNumberAction } from "@/app/actions/business";
+import { connectICloudCalendarAction, disconnectICloudCalendarAction } from "@/app/actions/icloud-calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { IntegrationStatusBadge } from "@/components/dashboard/status-badges";
 
 const PROVIDER_META: Record<IntegrationProvider, { name: string; description: string; icon: typeof CalendarDays }> = {
   google_calendar: { name: "Google Calendar", description: "Sync availability and appointments both ways.", icon: CalendarDays },
+  icloud_calendar: { name: "iCloud Calendar", description: "Sync with your Apple Calendar using an app-specific password.", icon: Apple },
   microsoft_outlook: { name: "Microsoft Outlook", description: "Sync availability and appointments both ways.", icon: CalendarDays },
   twilio: { name: "Phone (Twilio)", description: "Powers your HavnLine phone number and inbound calls.", icon: PhoneCall },
   sms: { name: "SMS confirmations", description: "Sent automatically from your HavnLine number once you have one.", icon: MessageSquare },
@@ -56,6 +59,41 @@ export function IntegrationsClient({
   const [provisioning, setProvisioning] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // iCloud Calendar
+  const [icloudExpanded, setIcloudExpanded] = useState(false);
+  const [appleId, setAppleId] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [icloudConnecting, setIcloudConnecting] = useState(false);
+  const [icloudError, setIcloudError] = useState<string | null>(null);
+
+  function handleConnectICloud() {
+    setIcloudConnecting(true);
+    setIcloudError(null);
+    startTransition(async () => {
+      const result = await connectICloudCalendarAction(appleId, appPassword);
+      setIcloudConnecting(false);
+      if (!result.success) {
+        setIcloudError(result.error || "Could not connect iCloud Calendar.");
+        return;
+      }
+      setAppleId("");
+      setAppPassword("");
+      setIcloudExpanded(false);
+      setIntegrations((prev) =>
+        prev.map((i) => (i.provider === "icloud_calendar" ? { ...i, status: "connected" } : i))
+      );
+    });
+  }
+
+  function handleDisconnectICloud() {
+    startTransition(async () => {
+      await disconnectICloudCalendarAction();
+      setIntegrations((prev) =>
+        prev.map((i) => (i.provider === "icloud_calendar" ? { ...i, status: "not_connected" } : i))
+      );
+    });
+  }
 
   function handleGetNumber() {
     setProvisioning(true);
@@ -132,7 +170,14 @@ export function IntegrationsClient({
               : null;
 
           return (
-            <Card key={integration.id} className={integration.provider === "twilio" ? "sm:col-span-2" : undefined}>
+            <Card
+              key={integration.id}
+              className={
+                integration.provider === "twilio" || integration.provider === "icloud_calendar"
+                  ? "sm:col-span-2"
+                  : undefined
+              }
+            >
               <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-paper text-text-muted">
@@ -155,6 +200,16 @@ export function IntegrationsClient({
                       {integration.status === "connected" ? "Reconnect" : "Connect"}
                     </a>
                   </Button>
+                ) : integration.provider === "icloud_calendar" ? (
+                  integration.status === "connected" ? (
+                    <Button size="sm" variant="outline" onClick={handleDisconnectICloud}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="brand" onClick={() => setIcloudExpanded((v) => !v)}>
+                      {icloudExpanded ? "Cancel" : "Connect"}
+                    </Button>
+                  )
                 ) : integration.provider === "twilio" ? (
                   <div className="flex items-center gap-2">
                     <Input
@@ -186,6 +241,60 @@ export function IntegrationsClient({
                   </Button>
                 )}
               </CardContent>
+
+              {integration.provider === "icloud_calendar" && icloudExpanded && (
+                <CardContent className="border-t border-border-soft pt-4">
+                  {icloudError && (
+                    <div className="mb-3 rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+                      {icloudError}
+                    </div>
+                  )}
+                  <div className="rounded-lg border border-border bg-paper px-3.5 py-3 text-[12px] leading-relaxed text-text-muted">
+                    Apple requires a separate <strong>app-specific password</strong> for this — not your real
+                    Apple ID password. Generate one at{" "}
+                    <a
+                      href="https://appleid.apple.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-brand hover:underline"
+                    >
+                      appleid.apple.com
+                    </a>{" "}
+                    → Sign-In and Security → App-Specific Passwords. You can revoke it anytime from there too.
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Apple ID</Label>
+                      <Input
+                        className="mt-1.5"
+                        type="email"
+                        placeholder="you@icloud.com"
+                        value={appleId}
+                        onChange={(e) => setAppleId(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>App-specific password</Label>
+                      <Input
+                        className="mt-1.5"
+                        type="password"
+                        placeholder="xxxx-xxxx-xxxx-xxxx"
+                        value={appPassword}
+                        onChange={(e) => setAppPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="brand"
+                    className="mt-3"
+                    onClick={handleConnectICloud}
+                    disabled={icloudConnecting}
+                  >
+                    {icloudConnecting ? "Connecting…" : "Connect iCloud Calendar"}
+                  </Button>
+                </CardContent>
+              )}
             </Card>
           );
         })}

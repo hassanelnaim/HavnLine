@@ -5,6 +5,7 @@ import { getCurrentBusinessId } from "@/lib/supabase/business";
 
 const ALL_PROVIDERS: IntegrationProvider[] = [
   "google_calendar",
+  "icloud_calendar",
   "microsoft_outlook",
   "twilio",
   "sms",

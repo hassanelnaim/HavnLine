@@ -220,6 +220,7 @@ export interface DbPromotion {
 
 export type IntegrationProvider =
   | "google_calendar"
+  | "icloud_calendar"
   | "microsoft_outlook"
   | "twilio"
   | "sms"
