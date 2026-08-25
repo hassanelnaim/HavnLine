@@ -352,13 +352,13 @@ export function IntegrationsClient({
               </p>
               <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-text">
                 <li>
-                  <span className="font-semibold text-text">Verizon or US Cellular:</span> dial{" "}
+                  <span className="font-semibold">- Verizon or US Cellular:</span> dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*72</code>{" "}
                   followed by your HavnLine number, then call. To turn it back off, dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*73</code>.
                 </li>
                 <li>
-                  <span className="font-semibold text-text">AT&amp;T:</span> dial{" "}
+                  <span className="font-semibold">- AT&amp;T:</span> dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">*21*</code>{" "}
                   followed by your HavnLine number, then{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">#</code>, then
@@ -366,7 +366,7 @@ export function IntegrationsClient({
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">##21#</code>.
                 </li>
                 <li>
-                  <span className="font-semibold text-text">T-Mobile (including Metro, Mint, Ultra Mobile):</span>{" "}
+                  <span className="font-semibold">- T-Mobile (including Metro, Mint, Ultra Mobile):</span>{" "}
                   dial{" "}
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">**21*</code>{" "}
                   followed by your HavnLine number, then{" "}
@@ -379,16 +379,16 @@ export function IntegrationsClient({
                   <code className="rounded bg-border-soft px-1.5 py-0.5 font-mono text-[12px] text-text">##21#</code>.
                 </li>
                 <li>
-                  <span className="font-semibold text-text">Landline or business phone system</span> (e.g.
+                  <span className="font-semibold">- Landline or business phone system</span> (e.g.
                   RingCentral, a desk phone, an office PBX): look for &quot;call forwarding&quot; in your
                   provider&apos;s online account settings or admin panel, and enter your HavnLine number there.
                 </li>
                 <li>
-                  <span className="font-semibold text-text">Google Voice:</span> Settings → Phones → add your
+                  <span className="font-semibold">- Google Voice:</span> Settings → Phones → add your
                   HavnLine number as a linked number.
                 </li>
               </ul>
-              <p className="mt-3 text-[12px] text-text-muted">
+              <p className="mt-3 text-[13px] leading-relaxed text-text">
                 Star codes can vary slightly by phone and account type — if none of these work, your carrier&apos;s
                 support line can turn it on for you in under a minute.
               </p>
