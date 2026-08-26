@@ -81,7 +81,7 @@ export async function buildTurnResponseTwiml(
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
 
   return twiml(`<Response>
-  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
+  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
     ${sayLine(voice, result.reply)}
   </Gather>
   ${sayLine(voice, "Thanks for calling. Goodbye.")}

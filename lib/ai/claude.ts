@@ -46,7 +46,7 @@ export async function runClaudeTurn(
   }
 
   const model = options.model || (toolCtx.channel === "phone" ? PHONE_MODEL : DEFAULT_MODEL);
-  const maxTokens = options.maxTokens || (toolCtx.channel === "phone" ? 300 : 1024);
+  const maxTokens = options.maxTokens || (toolCtx.channel === "phone" ? 150 : 1024);
 
   const messages = [...history];
   const toolCallLog: { name: string; input: any; result: any }[] = [];

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   if (!speechResult) {
     return twiml(`<Response>
-  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
+  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
     ${sayLine(voice, "Sorry, could you say that again?")}
   </Gather>
   ${sayLine(voice, "I'm not able to hear you — please call back. Goodbye.")}

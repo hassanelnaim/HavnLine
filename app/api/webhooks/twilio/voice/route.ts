@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   const voice = { voiceId: context.voice?.voice_id, providerVoiceRef: context.voice?.provider_voice_ref };
 
   return twiml(`<Response>
-  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call">
+  <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
     ${sayLine(voice, greeting)}
   </Gather>
   ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.")}
