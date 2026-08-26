@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = `${SITE_URL}/api/webhooks/twilio/voice`;
+  const fullUrl = request.nextUrl.toString();
   if (!validateTwilioSignature(signature, fullUrl, params, resolved.subAccountAuthToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }

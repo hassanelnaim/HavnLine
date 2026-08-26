@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   // call to that number, not tied to one call up front.
   const resolved = await resolveBusinessFromPhoneNumber(params.To);
   const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = `${SITE_URL}/api/webhooks/twilio/status`;
+  const fullUrl = request.nextUrl.toString();
   if (!validateTwilioSignature(signature, fullUrl, params, resolved?.subAccountAuthToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }

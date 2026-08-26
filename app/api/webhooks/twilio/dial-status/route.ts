@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const authToken = call ? await getBusinessTwilioAuthToken(call.business_id) : null;
   const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
+  const fullUrl = request.nextUrl.toString();
   if (!validateTwilioSignature(signature, fullUrl, params, authToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
