@@ -200,14 +200,14 @@ export function validateTwilioSignature(
     return false;
   }
   const valid = twilio.validateRequest(token, signature, url, params);
-  if (!valid) {
-    // Temporary diagnostic logging — safe to remove once signature
-    // validation is confirmed stable again. Never logs the token itself.
+if (!valid) {
+    const fingerprint = token.length > 8 ? `${token.slice(0, 4)}...${token.slice(-4)} (len ${token.length})` : "too short";
     console.error("Twilio signature validation FAILED.", {
       url,
       usedSubAccountToken: Boolean(authToken),
       signatureHeaderPresent: Boolean(signature),
+      tokenFingerprint: fingerprint,
+      paramKeys: Object.keys(params),
     });
   }
   return valid;
-}
