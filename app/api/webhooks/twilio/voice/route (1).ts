@@ -90,17 +90,9 @@ export async function POST(request: NextRequest) {
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
   const voice = { voiceId: context.voice?.voice_id, providerVoiceRef: context.voice?.provider_voice_ref };
 
-  // The greeting always uses Twilio's own built-in voice, not
-  // ElevenLabs — even with ElevenLabs configured for the rest of the
-  // call. Generating premium audio takes a couple of real seconds, and
-  // there's no "one moment" filler covering this very first line the
-  // way there is for every response after it — using the instant
-  // built-in voice here avoids dead silence right as someone calls in.
-  const instantVoice = resolveTwilioVoice(voice.voiceId as any);
-
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
-    <Say voice="${instantVoice}">${escapeXml(greeting)}</Say>
+    ${sayLine(voice, greeting)}
   </Gather>
   ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.")}
   <Hangup/>
