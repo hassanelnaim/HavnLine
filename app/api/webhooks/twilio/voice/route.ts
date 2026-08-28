@@ -4,7 +4,7 @@ import { resolveBusinessFromPhoneNumber, loadBusinessContext } from "@/lib/ai/co
 import { startCall } from "@/lib/ai/receptionist";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
-import { sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
+import { sayLine, getRequestUrl, resolveTwilioVoice } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -86,13 +86,21 @@ export async function POST(request: NextRequest) {
     content: `Inbound call from ${callerNumber} to ${dialedNumber}`,
   });
 
-  const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. How can I help you?`;
+  const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. How can I help?`;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
   const voice = { voiceId: context.voice?.voice_id, providerVoiceRef: context.voice?.provider_voice_ref };
 
+  // The greeting always uses Twilio's own built-in voice, not
+  // ElevenLabs — even with ElevenLabs configured for the rest of the
+  // call. Generating premium audio takes a couple of real seconds, and
+  // there's no "one moment" filler covering this very first line the
+  // way there is for every response after it — using the instant
+  // built-in voice here avoids dead silence right as someone calls in.
+  const instantVoice = resolveTwilioVoice(voice.voiceId as any);
+
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
-    ${sayLine(voice, greeting)}
+    <Say voice="${instantVoice}">${escapeXml(greeting)}</Say>
   </Gather>
   ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.")}
   <Hangup/>
