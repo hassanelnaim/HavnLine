@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
 import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
-import { twiml, buildTurnResponseTwiml } from "@/lib/ai/twimlHelpers";
+import { twiml, buildTurnResponseTwiml, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   const authToken = await getBusinessTwilioAuthToken(call.business_id);
   const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = request.nextUrl.toString();
+  const fullUrl = getRequestUrl(request);
   if (!validateTwilioSignature(signature, fullUrl, params, authToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }

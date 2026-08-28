@@ -4,7 +4,7 @@ import { resolveBusinessFromPhoneNumber, loadBusinessContext } from "@/lib/ai/co
 import { startCall } from "@/lib/ai/receptionist";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
-import { sayLine } from "@/lib/ai/twimlHelpers";
+import { sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   const signature = request.headers.get("x-twilio-signature");
-  const fullUrl = request.nextUrl.toString();
+  const fullUrl = getRequestUrl(request);
   if (!validateTwilioSignature(signature, fullUrl, params, resolved.subAccountAuthToken)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }

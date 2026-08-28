@@ -191,6 +191,23 @@ export function validateTwilioSignature(
   authToken?: string | null
 ): boolean {
   const token = authToken || process.env.TWILIO_AUTH_TOKEN;
-  if (!token || !signature) return false;
-  return twilio.validateRequest(token, signature, url, params);
+  if (!token || !signature) {
+    console.error("Twilio signature validation: missing token or signature.", {
+      hasToken: Boolean(token),
+      hasSignature: Boolean(signature),
+      url,
+    });
+    return false;
+  }
+  const valid = twilio.validateRequest(token, signature, url, params);
+  if (!valid) {
+    // Temporary diagnostic logging — safe to remove once signature
+    // validation is confirmed stable again. Never logs the token itself.
+    console.error("Twilio signature validation FAILED.", {
+      url,
+      usedSubAccountToken: Boolean(authToken),
+      signatureHeaderPresent: Boolean(signature),
+    });
+  }
+  return valid;
 }

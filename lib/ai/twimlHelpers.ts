@@ -17,6 +17,25 @@ export function twiml(body: string) {
   });
 }
 
+/**
+ * Reconstructs the EXACT public URL Twilio actually requested, built
+ * directly from the incoming request's own headers rather than
+ * `request.nextUrl` or an env var. This matters specifically for
+ * Twilio signature validation: Twilio computes its signature based on
+ * the literal URL it called, and behind Vercel's proxy layer (or right
+ * after switching to a custom domain), Next.js's own URL parsing can
+ * sometimes report something subtly different from what the client
+ * actually addressed. Reading straight from the `host` and
+ * `x-forwarded-proto` headers is the most reliable way to match
+ * exactly what Twilio signed against.
+ */
+export function getRequestUrl(request: Request): string {
+  const url = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || url.host;
+  const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}${url.pathname}${url.search}`;
+}
+
 export function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
