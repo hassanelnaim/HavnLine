@@ -52,25 +52,8 @@ export function escapeXml(s: string) {
  * Every place that speaks to a caller should go through this function
  * rather than building <Say>/<Play> tags directly.
  */
-/**
- * Whether real phone calls should use ElevenLabs' premium voices at
- * all. Defaults to OFF — with the current turn-based (not real-time
- * streaming) call architecture, every ElevenLabs response requires a
- * real few-second generation delay before Twilio can play anything,
- * on every single turn. That's an inherent limit of this webhook-based
- * approach, not something further tuning can fix — genuinely low
- * latency with premium voice quality needs a different, bigger
- * real-time architecture (Twilio Media Streams).
- *
- * Set PHONE_VOICE_MODE=premium in Vercel to opt back into ElevenLabs
- * on calls once that's a priority again — no code change needed.
- */
-function useElevenLabsOnCalls(): boolean {
-  return isElevenLabsConfigured() && process.env.PHONE_VOICE_MODE === "premium";
-}
-
 export function sayLine(voice: VoiceSelection, text: string): string {
-  if (useElevenLabsOnCalls()) {
+  if (isElevenLabsConfigured()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;
@@ -146,6 +129,26 @@ export async function lastTurnUsedTool(callId: string): Promise<boolean> {
     .maybeSingle();
 
   return Boolean(data?.tool_call);
+}
+
+/**
+ * Catches the specific gap lastTurnUsedTool() alone misses: the FIRST
+ * message in a conversation that will need a tool (e.g. "I'd like to
+ * book an appointment" right after the greeting) has no previous
+ * tool-using turn to predict from, so it was falling through to the
+ * fast/no-filler path and hitting a real multi-second silent gap.
+ * Checking the customer's own words for booking/lookup-shaped language
+ * catches this directly, on top of the previous-turn signal.
+ */
+const LIKELY_SLOW_KEYWORDS = [
+  "book", "appointment", "schedule", "reschedule", "cancel",
+  "available", "availability", "price", "cost", "how much",
+  "hours", "open", "closed", "service", "refund", "talk to", "speak to", "human", "person",
+];
+
+export function textLikelyNeedsTool(text: string): boolean {
+  const lower = text.toLowerCase();
+  return LIKELY_SLOW_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 export { resolveTwilioVoice };
