@@ -199,23 +199,13 @@ export function validateTwilioSignature(
     });
     return false;
   }
-  export function validateTwilioSignature(
-  signature: string | null,
-  url: string,
-  params: Record<string, string>,
-  authToken?: string | null
-): boolean {
-  const token = authToken || process.env.TWILIO_AUTH_TOKEN;
-  if (!token || !signature) {
-    console.error("Twilio signature validation: missing token or signature.", {
-      hasToken: Boolean(token),
-      hasSignature: Boolean(signature),
-      url,
-    });
-    return false;
-  }
   const valid = twilio.validateRequest(token, signature, url, params);
   if (!valid) {
+    // Temporary diagnostic logging — safe to remove once signature
+    // validation is confirmed stable again. Only logs a partial
+    // fingerprint of the token (first/last 4 characters) — enough to
+    // visually compare against Twilio Console's own partial reveal,
+    // never enough to reconstruct the real secret.
     const fingerprint = token.length > 8 ? `${token.slice(0, 4)}...${token.slice(-4)} (len ${token.length})` : "too short";
     console.error("Twilio signature validation FAILED.", {
       url,
