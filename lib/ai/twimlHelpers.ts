@@ -52,8 +52,25 @@ export function escapeXml(s: string) {
  * Every place that speaks to a caller should go through this function
  * rather than building <Say>/<Play> tags directly.
  */
+/**
+ * Whether real phone calls should use ElevenLabs' premium voices at
+ * all. Defaults to OFF — with the current turn-based (not real-time
+ * streaming) call architecture, every ElevenLabs response requires a
+ * real few-second generation delay before Twilio can play anything,
+ * on every single turn. That's an inherent limit of this webhook-based
+ * approach, not something further tuning can fix — genuinely low
+ * latency with premium voice quality needs a different, bigger
+ * real-time architecture (Twilio Media Streams).
+ *
+ * Set PHONE_VOICE_MODE=premium in Vercel to opt back into ElevenLabs
+ * on calls once that's a priority again — no code change needed.
+ */
+function useElevenLabsOnCalls(): boolean {
+  return isElevenLabsConfigured() && process.env.PHONE_VOICE_MODE === "premium";
+}
+
 export function sayLine(voice: VoiceSelection, text: string): string {
-  if (isElevenLabsConfigured()) {
+  if (useElevenLabsOnCalls()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;
