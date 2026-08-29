@@ -19,6 +19,18 @@ export async function signUpAction(formData: FormData) {
   }
 
   const supabase = createClient();
+
+  // Critical: if there's already an active session (e.g. testing a
+  // second business while still logged into the first), sign it out
+  // BEFORE creating the new account. Without this, Supabase can create
+  // the new user for real but leave the browser's session cookie
+  // pointed at the OLD account — meaning everything done afterward
+  // (onboarding, business creation) gets silently attributed to
+  // whoever was already logged in, not the new signup. This is exactly
+  // what caused two different test businesses to end up linked to the
+  // same account despite using two different emails.
+  await supabase.auth.signOut();
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
