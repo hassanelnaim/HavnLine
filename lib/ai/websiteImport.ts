@@ -109,3 +109,61 @@ export async function extractKnowledgeFromText(
     return [];
   }
 }
+
+export interface ExtractedService {
+  name: string;
+  description: string;
+  priceDollars: string; // "" if not found on the site — never invented
+  durationMinutes: number; // defaults to 30 if not stated
+}
+
+/**
+ * Pulls structured SERVICES (name, price, duration) out of raw website
+ * text — used by onboarding's "What do you offer?" step so a business
+ * owner can paste their site instead of typing every service by hand.
+ * Separate from extractKnowledgeFromText() because this needs a
+ * strict, price/duration-shaped schema rather than loose FAQ text.
+ */
+export async function extractServicesFromText(
+  businessName: string,
+  websiteText: string
+): Promise<ExtractedService[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not configured.");
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1500,
+    system: `You extract a list of SERVICES (things customers can book/buy) from raw website text for "${businessName}". Only include services that are genuinely mentioned in the text — never invent a service, price, or duration that isn't there. Respond with ONLY a JSON array, no other text, no markdown fences. Each item: {"name": string, "description": string (short, one line), "priceDollars": string (just the number as a string, e.g. "59.99" — empty string "" if no price is stated), "durationMinutes": number (your best reasonable estimate if not explicitly stated, otherwise the real stated duration)}. Skip navigation text and anything that isn't really a bookable service.`,
+    messages: [
+      {
+        role: "user",
+        content: `Extract the list of services from this website text:\n\n${websiteText}`,
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") return [];
+
+  const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.name === "string" && item.name.trim())
+      .map((item) => ({
+        name: item.name,
+        description: typeof item.description === "string" ? item.description : "",
+        priceDollars: typeof item.priceDollars === "string" ? item.priceDollars : "",
+        durationMinutes: typeof item.durationMinutes === "number" ? item.durationMinutes : 30,
+      }));
+  } catch {
+    return [];
+  }
+}

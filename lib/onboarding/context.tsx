@@ -20,6 +20,7 @@ export interface OnboardingHoursDraft {
 }
 
 export interface OnboardingDraft {
+  businessId: string | null;
   businessName: string;
   businessType: string;
   address: string;
@@ -53,6 +54,7 @@ const WEEKDAYS: Weekday[] = [
 ];
 
 const defaultDraft: OnboardingDraft = {
+  businessId: null,
   businessName: "",
   businessType: "",
   address: "",
