@@ -170,10 +170,20 @@ export async function completeOnboardingAction(
   }
 
   // Voice config.
-  const { error: voiceError } = await admin.from("ai_voice_configs").insert({
-    business_id: businessId,
-    voice_id: draft.voiceId,
-  });
+  const { error: voiceError } = await admin.from("ai_voice_configs").insert(
+    draft.customVoiceRef
+      ? {
+          business_id: businessId,
+          voice_id: "custom",
+          provider: "elevenlabs",
+          provider_voice_ref: draft.customVoiceRef,
+          provider_voice_name: draft.customVoiceName,
+        }
+      : {
+          business_id: businessId,
+          voice_id: draft.voiceId,
+        }
+  );
   if (voiceError) {
     return { success: false, error: voiceError.message };
   }

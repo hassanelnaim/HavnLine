@@ -36,6 +36,8 @@ export interface OnboardingDraft {
   responsibilities: AiResponsibilities;
 
   voiceId: VoiceId;
+  customVoiceRef: string | null;
+  customVoiceName: string | null;
 
   calendarProvider: "google_calendar" | "microsoft_outlook" | null;
 }
@@ -68,6 +70,8 @@ const defaultDraft: OnboardingDraft = {
   personality: "professional",
   responsibilities: DEFAULT_RESPONSIBILITIES,
   voiceId: "alex_professional",
+  customVoiceRef: null,
+  customVoiceName: null,
   calendarProvider: null,
 };
 
