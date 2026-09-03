@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   await admin.from("call_messages").insert({ call_id: callId, role: "system", content: `Inbound call from ${callerNumber} to ${dialedNumber}` });
 
-  const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. How can I help?`;
+  const greeting = `Thanks for calling ${context.business.name}, this is ${context.ai.name}. Please note there may be a few seconds' delay between questions. How can I help?`;
   const gatherAction = `${SITE_URL}/api/webhooks/twilio/gather?callId=${callId}`;
   const voice = { voiceId: context.voice?.voice_id, providerVoiceRef: context.voice?.provider_voice_ref };
 

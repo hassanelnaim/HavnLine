@@ -31,17 +31,11 @@ export function escapeXml(s: string) {
 /**
  * Builds the TwiML markup for a single spoken line. If ElevenLabs is
  * configured, uses <Play> pointing at /api/tts for real premium-voice
- * audio. If not configured — OR if forceInstant is true — uses
- * Twilio's own instant built-in <Say> voice, zero generation delay.
- *
- * forceInstant is specifically for short filler acknowledgments
- * ("one sec", "let me check that") where even a couple seconds of
- * ElevenLabs generation defeats the entire purpose of a quick
- * acknowledgment. Deliberately reuses the exact same <Say> path that
- * already runs whenever ElevenLabs isn't configured at all.
+ * audio. If not configured, falls back to Twilio's own built-in
+ * <Say> voice.
  */
-export function sayLine(voice: VoiceSelection, text: string, forceInstant: boolean = false): string {
-  if (isElevenLabsConfigured() && !forceInstant) {
+export function sayLine(voice: VoiceSelection, text: string): string {
+  if (isElevenLabsConfigured()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;

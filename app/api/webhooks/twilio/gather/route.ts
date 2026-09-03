@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  ${sayLine(voice, filler, true)}
+  ${sayLine(voice, filler)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }
