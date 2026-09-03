@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@/lib/utils";
@@ -12,10 +11,7 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={cn(
-      "inline-flex items-center gap-1 rounded-lg bg-paper p-1 border border-border",
-      className
-    )}
+    className={cn("mb-5 flex items-center gap-1.5 border-b border-border", className)}
     {...props}
   />
 ));
@@ -28,9 +24,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center rounded-md px-3 py-1.5 text-[13px] font-medium text-text-muted transition-colors",
-      "data-[state=active]:bg-card data-[state=active]:text-ink data-[state=active]:shadow-sm",
-      "focus-visible:outline-none",
+      "flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text data-[state=active]:border-brand data-[state=active]:text-brand",
       className
     )}
     {...props}
@@ -42,11 +36,7 @@ const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn("mt-4 focus-visible:outline-none animate-fade-up", className)}
-    {...props}
-  />
+  <TabsPrimitive.Content ref={ref} className={cn("animate-fade-up", className)} {...props} />
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 

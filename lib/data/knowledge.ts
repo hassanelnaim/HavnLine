@@ -1,22 +1,14 @@
-import type { DbKnowledgeItem } from "@/lib/database/types";
-import { mockKnowledgeItems } from "@/lib/mock/data";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentBusinessId } from "@/lib/supabase/business";
+import { mockKnowledgeItems } from "@/lib/mock/data";
+import type { DbKnowledgeItem } from "@/lib/database/types";
 
 export async function getKnowledgeItems(): Promise<DbKnowledgeItem[]> {
+  if (!isSupabaseConfigured()) return mockKnowledgeItems;
   const businessId = await getCurrentBusinessId();
-  if (!businessId) {
-    return [...mockKnowledgeItems].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }
+  if (!businessId) return mockKnowledgeItems;
 
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("knowledge_items")
-    .select("*")
-    .eq("business_id", businessId)
-    .order("created_at", { ascending: false });
-
-  return error || !data ? [] : data;
+  const { data } = await supabase.from("knowledge_items").select("*").eq("business_id", businessId).order("created_at", { ascending: false });
+  return data || mockKnowledgeItems;
 }

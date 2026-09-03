@@ -28,8 +28,20 @@ export function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export function sayLine(voice: VoiceSelection, text: string): string {
-  if (isElevenLabsConfigured()) {
+/**
+ * Builds the TwiML markup for a single spoken line. If ElevenLabs is
+ * configured, uses <Play> pointing at /api/tts for real premium-voice
+ * audio. If not configured — OR if forceInstant is true — uses
+ * Twilio's own instant built-in <Say> voice, zero generation delay.
+ *
+ * forceInstant is specifically for short filler acknowledgments
+ * ("one sec", "let me check that") where even a couple seconds of
+ * ElevenLabs generation defeats the entire purpose of a quick
+ * acknowledgment. Deliberately reuses the exact same <Say> path that
+ * already runs whenever ElevenLabs isn't configured at all.
+ */
+export function sayLine(voice: VoiceSelection, text: string, forceInstant: boolean = false): string {
+  if (isElevenLabsConfigured() && !forceInstant) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;
@@ -45,7 +57,7 @@ export async function buildTurnResponseTwiml(
   result: HandleTurnResult,
   voice: VoiceSelection
 ): Promise<Response> {
-  const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && tc.result?.transferring);
+  const transferCall = result.toolCalls.find((tc) => tc.name === "transfer_call" && (tc.result as any)?.transferring);
   if (transferCall) {
     const admin = createAdminClient();
     const [{ data: business }, { data: twilioIntegration }] = await Promise.all([
@@ -53,9 +65,7 @@ export async function buildTurnResponseTwiml(
       admin.from("integrations").select("metadata").eq("business_id", businessId).eq("provider", "twilio").maybeSingle(),
     ]);
 
-    const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as
-      | string
-      | undefined;
+    const getMadeNumber = (twilioIntegration?.metadata as Record<string, unknown> | null)?.phone_number as string | undefined;
 
     if (business?.phone) {
       const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";

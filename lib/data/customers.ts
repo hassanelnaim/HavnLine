@@ -1,59 +1,28 @@
-import type { DbAppointment, DbCall, DbCustomer } from "@/lib/database/types";
-import { mockAppointments, mockCalls, mockCustomers } from "@/lib/mock/data";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentBusinessId } from "@/lib/supabase/business";
+import { mockCustomers } from "@/lib/mock/data";
+import type { DbCustomer } from "@/lib/database/types";
 
 export async function getCustomers(): Promise<DbCustomer[]> {
+  if (!isSupabaseConfigured()) return mockCustomers;
   const businessId = await getCurrentBusinessId();
-  if (!businessId) {
-    return [...mockCustomers].sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-  }
+  if (!businessId) return mockCustomers;
 
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("business_id", businessId)
-    .order("updated_at", { ascending: false });
-
-  return error || !data ? [] : data;
+  const { data } = await supabase.from("customers").select("*").eq("business_id", businessId).order("created_at", { ascending: false });
+  return data || mockCustomers;
 }
 
-export async function getCustomerById(id: string): Promise<DbCustomer | null> {
-  const businessId = await getCurrentBusinessId();
-  if (!businessId) return mockCustomers.find((c) => c.id === id) ?? null;
-
+export async function getCustomer(customerId: string): Promise<DbCustomer | null> {
+  if (!isSupabaseConfigured()) return mockCustomers.find((c) => c.id === customerId) || null;
   const supabase = createClient();
-  const { data, error } = await supabase.from("customers").select("*").eq("id", id).single();
-  return error || !data ? null : data;
+  const { data } = await supabase.from("customers").select("*").eq("id", customerId).maybeSingle();
+  return data || null;
 }
 
-export async function getCustomerCalls(customerId: string): Promise<DbCall[]> {
-  const businessId = await getCurrentBusinessId();
-  if (!businessId) return mockCalls.filter((c) => c.customer_id === customerId);
-
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("calls")
-    .select("*")
-    .eq("customer_id", customerId)
-    .order("started_at", { ascending: false });
-
-  return error || !data ? [] : data;
-}
-
-export async function getCustomerAppointments(customerId: string): Promise<DbAppointment[]> {
-  const businessId = await getCurrentBusinessId();
-  if (!businessId) return mockAppointments.filter((a) => a.customer_id === customerId);
-
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("appointments")
-    .select("*")
-    .eq("customer_id", customerId)
-    .order("date", { ascending: true });
-
-  return error || !data ? [] : data;
-}
+// Re-exported for backward compatibility — the real implementation now
+// lives in lib/customer-utils.ts (a client-safe file with zero server
+// imports), so client components can import the pure counting logic
+// directly without accidentally pulling this server-only data module
+// (and its next/headers dependency) into the browser bundle.
+export { countNewCustomers } from "@/lib/customer-utils";

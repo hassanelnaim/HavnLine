@@ -1,155 +1,117 @@
 import Link from "next/link";
-import { PhoneCall, CalendarCheck, UserPlus, TriangleAlert, ArrowUpRight } from "lucide-react";
-import { getCalls } from "@/lib/data/calls";
-import { getUpcomingAppointments } from "@/lib/data/appointments";
-import { getCustomers } from "@/lib/data/customers";
+import { PhoneCall, CalendarCheck, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { getBusiness } from "@/lib/data/business";
 import { getAiReceptionist } from "@/lib/data/ai-receptionist";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { getCalls } from "@/lib/data/calls";
+import { getAppointments } from "@/lib/data/appointments";
+import { getCustomers } from "@/lib/data/customers";
+import { CallOutcomeBadge, AppointmentStatusBadge } from "@/components/dashboard/status-badges";
 import { EmptyState } from "@/components/dashboard/empty-state";
-import { Card } from "@/components/ui/card";
-import {
-  CallOutcomeBadge,
-  AppointmentStatusBadge,
-} from "@/components/dashboard/status-badges";
-import { formatDateTime, formatDuration, initials } from "@/lib/format";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NewCustomersCard } from "@/components/dashboard/new-customers-card";
+import { formatDateTime } from "@/lib/format";
+import { CalendarClock } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [calls, upcoming, customers, ai] = await Promise.all([
-    getCalls(),
-    getUpcomingAppointments(),
-    getCustomers(),
-    getAiReceptionist(),
+  const [business, ai, calls, appointments, customers] = await Promise.all([
+    getBusiness(), getAiReceptionist(), getCalls(), getAppointments(), getCustomers(),
   ]);
 
   const today = new Date().toDateString();
-  const callsToday = calls.filter((c) => new Date(c.started_at).toDateString() === today);
-  const appointmentsToday = upcoming.filter(
-    (a) => new Date(a.date + "T00:00:00").toDateString() === today
-  );
-  const newCustomers = customers.filter((c) => {
-    const created = new Date(c.created_at);
-    const daysSince = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince <= 14;
-  });
-  const escalations = calls.filter((c) => c.outcome === "escalated");
+  const callsToday = calls.filter((c) => new Date(c.started_at).toDateString() === today).length;
+  const appointmentsToday = appointments.filter((a) => a.date === new Date().toISOString().slice(0, 10)).length;
+
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const escalationsLast30 = calls.filter((c) => c.outcome === "escalated" && new Date(c.started_at).getTime() >= thirtyDaysAgo).length;
+
+  const recentCalls = calls.slice(0, 5);
+  const upcomingAppointments = appointments.filter((a) => a.status === "confirmed").slice(0, 5);
 
   return (
     <div>
-      <PageHeader
-        title="Overview"
-        description={`Here's what's happened with ${ai.name} recently.`}
-      />
+      <h1 className="font-display text-[24px] font-semibold text-ink">Overview</h1>
+      <p className="mt-1 text-[13.5px] text-text-muted">Here&apos;s what&apos;s happened with {ai.name} recently.</p>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Calls today" value={callsToday.length} icon={PhoneCall} tone="brand" />
-        <StatCard
-          label="Appointments today"
-          value={appointmentsToday.length}
-          icon={CalendarCheck}
-          tone="brand"
-        />
-        <StatCard label="New customers" value={newCustomers.length} icon={UserPlus} />
-        <StatCard
-          label="Human escalations"
-          value={escalations.length}
-          icon={TriangleAlert}
-          tone={escalations.length > 0 ? "danger" : "neutral"}
-          foot="Last 30 days"
-        />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-faint">Calls today</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-brand-dark"><PhoneCall className="h-4 w-4" /></div>
+          </div>
+          <div className="mt-2 font-display text-[28px] font-semibold text-ink">{callsToday}</div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-faint">Appointments today</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-brand-dark"><CalendarClock className="h-4 w-4" /></div>
+          </div>
+          <div className="mt-2 font-display text-[28px] font-semibold text-ink">{appointmentsToday}</div>
+        </div>
+
+        <NewCustomersCard customers={customers} />
+
+        <Link href="/dashboard/escalations" className="group rounded-2xl border border-border bg-card p-5 shadow-card transition-colors hover:border-danger/40 hover:bg-danger-soft/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-text-faint">Human escalations</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-danger-soft text-danger"><AlertTriangle className="h-4 w-4" /></div>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5 font-display text-[28px] font-semibold text-ink">
+            {escalationsLast30}
+            <ArrowUpRight className="h-4 w-4 text-text-faint opacity-0 transition-opacity group-hover:opacity-100" />
+          </div>
+          <div className="mt-1 text-[11.5px] text-text-faint">Last 30 days — click to view</div>
+        </Link>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="flex items-center justify-between p-5 pb-0">
-            <h3 className="font-display text-[15px] font-semibold text-ink">Recent calls</h3>
-            <Link
-              href="/dashboard/calls"
-              className="flex items-center gap-1 text-[12px] font-medium text-brand hover:underline"
-            >
-              View all <ArrowUpRight className="h-3 w-3" />
-            </Link>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-[15px] font-semibold text-ink">Recent calls</h2>
+            <Link href="/dashboard/calls" className="flex items-center gap-1 text-[12.5px] font-medium text-brand hover:underline">View all <ArrowUpRight className="h-3.5 w-3.5" /></Link>
           </div>
-          <div className="p-5">
-            {calls.length === 0 ? (
-              <EmptyState
-                icon={PhoneCall}
-                title="No calls yet"
-                description="Once your receptionist is live, calls will show up here."
-              />
-            ) : (
-              <div className="space-y-1">
-                {calls.slice(0, 5).map((call) => (
-                  <div
-                    key={call.id}
-                    className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 hover:bg-paper"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-[11px]">
-                          {initials(call.customer_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-[13px] font-medium text-text">{call.customer_name}</div>
-                        <div className="font-mono text-[11px] text-text-faint">
-                          {formatDateTime(call.started_at)} · {formatDuration(call.duration_seconds)}
-                        </div>
-                      </div>
-                    </div>
-                    <CallOutcomeBadge outcome={call.outcome} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between p-5 pb-0">
-            <h3 className="font-display text-[15px] font-semibold text-ink">
-              Upcoming appointments
-            </h3>
-            <Link
-              href="/dashboard/appointments"
-              className="flex items-center gap-1 text-[12px] font-medium text-brand hover:underline"
-            >
-              View all <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="p-5">
-            {upcoming.length === 0 ? (
-              <EmptyState
-                icon={CalendarCheck}
-                title="No upcoming appointments"
-                description="Bookings your AI makes will appear here."
-              />
-            ) : (
-              <div className="space-y-1">
-                {upcoming.slice(0, 5).map((apt) => (
-                  <div
-                    key={apt.id}
-                    className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 hover:bg-paper"
-                  >
+          {recentCalls.length === 0 ? (
+            <EmptyState icon={PhoneCall} title="No calls yet" description="Calls your AI answers will show up here." />
+          ) : (
+            <div className="space-y-1">
+              {recentCalls.map((call) => (
+                <div key={call.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 hover:bg-paper">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">PC</div>
                     <div>
-                      <div className="text-[13px] font-medium text-text">{apt.customer_name}</div>
-                      <div className="text-[11.5px] text-text-muted">{apt.service_name}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-[12px] text-text">
-                        {apt.date} · {apt.time}
-                      </div>
-                      <div className="mt-0.5">
-                        <AppointmentStatusBadge status={apt.status} />
-                      </div>
+                      <div className="text-[13px] font-medium text-text">{call.customer_name}</div>
+                      <div className="text-[11.5px] text-text-faint">{formatDateTime(call.started_at)}</div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <CallOutcomeBadge outcome={call.outcome} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-[15px] font-semibold text-ink">Upcoming appointments</h2>
+            <Link href="/dashboard/appointments" className="flex items-center gap-1 text-[12.5px] font-medium text-brand hover:underline">View all <ArrowUpRight className="h-3.5 w-3.5" /></Link>
           </div>
-        </Card>
+          {upcomingAppointments.length === 0 ? (
+            <EmptyState icon={CalendarCheck} title="No upcoming appointments" description="Bookings your AI makes will appear here." />
+          ) : (
+            <div className="space-y-1">
+              {upcomingAppointments.map((appt) => (
+                <div key={appt.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 hover:bg-paper">
+                  <div>
+                    <div className="text-[13px] font-medium text-text">{appt.customer_name} — {appt.service_name}</div>
+                    <div className="text-[11.5px] text-text-faint">{appt.date} at {appt.time}</div>
+                  </div>
+                  <AppointmentStatusBadge status={appt.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

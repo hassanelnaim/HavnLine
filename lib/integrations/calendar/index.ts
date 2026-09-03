@@ -1,37 +1,12 @@
-/**
- * integrations/calendar/index.ts
- *
- * CalendarProvider is the single interface the AI's check_availability
- * and book_appointment tools talk to. Three implementations exist:
- *
- *  - SupabaseCalendarProvider: computes availability from
- *    business_hours + existing `appointments` rows. Always works, no
- *    external account needed — this is the default for every business.
- *
- *  - GoogleCalendarProvider: once a business connects Google Calendar
- *    (Integrations page), this takes over — it additionally checks the
- *    owner's real Google Calendar for busy blocks, and creates a real
- *    event when booking.
- *
- *  - ICloudCalendarProvider: same idea, for a business owner who uses
- *    Apple/iCloud Calendar instead — connected via CalDAV with an
- *    app-specific password rather than OAuth.
- *
- * getCalendarProviderForBusiness() picks the right one automatically.
- * If a business has both connected, Google takes priority since it was
- * the first supported provider — nothing else in the app should import
- * a specific provider directly.
- */
-
 export interface AvailabilitySlot {
-  start: string; // ISO 8601
-  end: string; // ISO 8601
-  label: string; // human-readable, e.g. "2:00 PM"
+  start: string;
+  end: string;
+  label: string;
 }
 
 export interface GetAvailabilityInput {
   businessId: string;
-  date: string; // YYYY-MM-DD, in the business's timezone
+  date: string;
   durationMinutes: number;
 }
 
@@ -45,8 +20,8 @@ export interface CreateEventInput {
   businessId: string;
   title: string;
   description?: string;
-  startTime: string; // ISO 8601
-  endTime: string; // ISO 8601
+  startTime: string;
+  endTime: string;
 }
 
 export interface CreateEventResult {

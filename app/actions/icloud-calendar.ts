@@ -9,9 +9,7 @@ import type { ActionResult } from "./business";
 
 async function requireBusinessId(): Promise<string> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated.");
 
   const businessId = await getCurrentBusinessId();
@@ -19,12 +17,6 @@ async function requireBusinessId(): Promise<string> {
   return businessId;
 }
 
-/**
- * Connects iCloud Calendar via CalDAV — validates the Apple ID +
- * app-specific password actually work BEFORE saving anything, so the
- * owner gets an immediate, clear error instead of a silent failure
- * discovered days later on a real call.
- */
 export async function connectICloudCalendarAction(appleId: string, appPassword: string): Promise<ActionResult> {
   let businessId: string;
   try {
@@ -33,25 +25,14 @@ export async function connectICloudCalendarAction(appleId: string, appPassword: 
     return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
   }
 
-  if (!appleId.trim() || !appPassword.trim()) {
-    return { success: false, error: "Enter both your Apple ID and app-specific password." };
-  }
+  if (!appleId.trim() || !appPassword.trim()) return { success: false, error: "Enter both your Apple ID and app-specific password." };
 
   const test = await testICloudConnection(appleId, appPassword);
-  if (!test.success) {
-    return { success: false, error: test.reason || "Could not connect to iCloud Calendar." };
-  }
+  if (!test.success) return { success: false, error: test.reason || "Could not connect to iCloud Calendar." };
 
   const admin = createAdminClient();
   const { error } = await admin.from("integrations").upsert(
-    {
-      business_id: businessId,
-      provider: "icloud_calendar",
-      status: "connected",
-      external_account_id: appleId,
-      connected_at: new Date().toISOString(),
-      metadata: { appleId, appPassword },
-    },
+    { business_id: businessId, provider: "icloud_calendar", status: "connected", external_account_id: appleId, connected_at: new Date().toISOString(), metadata: { appleId, appPassword } },
     { onConflict: "business_id,provider" }
   );
 
@@ -70,11 +51,7 @@ export async function disconnectICloudCalendarAction(): Promise<ActionResult> {
   }
 
   const admin = createAdminClient();
-  const { error } = await admin
-    .from("integrations")
-    .update({ status: "not_connected", metadata: null, external_account_id: null })
-    .eq("business_id", businessId)
-    .eq("provider", "icloud_calendar");
+  const { error } = await admin.from("integrations").update({ status: "not_connected", metadata: null, external_account_id: null }).eq("business_id", businessId).eq("provider", "icloud_calendar");
 
   if (error) return { success: false, error: error.message };
 

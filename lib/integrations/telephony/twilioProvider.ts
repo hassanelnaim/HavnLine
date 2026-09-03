@@ -1,35 +1,6 @@
 import twilio from "twilio";
 import type { VoiceId } from "@/lib/database/types";
 
-/**
- * integrations/telephony/twilioProvider.ts
- *
- * All direct Twilio SDK usage lives here — nothing else in the app
- * imports the `twilio` package directly.
- *
- * TWILIO SUB-ACCOUNTS — real per-business isolation
- * --------------------------------------------------
- * Every business gets its own Twilio SUB-ACCOUNT (its own account SID
- * + auth token, created under your one master account), and its phone
- * number lives inside that sub-account, not the master one. This
- * means:
- *   - Each business's calls, SMS, and usage are cleanly separated in
- *     Twilio's own records — not just in our database.
- *   - If one business's number is ever flagged for abuse or spam, it
- *     can't affect any other business's number or reputation.
- *   - Webhook signature validation for a given business's calls uses
- *     THAT business's sub-account auth token, not the master one —
- *     this is a real security detail, not just organizational: Twilio
- *     signs webhook requests using the auth token of whichever account
- *     actually owns the number that was called.
- *
- * IMPORTANT — what sub-accounts do NOT do: they don't create separate
- * billing wallets. Every sub-account's usage still bills to your one
- * master account's payment method — sub-accounts are for isolation and
- * organization, not per-customer credit cards. That's what the Stripe
- * subscription side of this app is for.
- */
-
 interface TwilioCredentials {
   accountSid: string;
   authToken: string;
@@ -52,10 +23,6 @@ export function isTwilioConfigured(): boolean {
   return Boolean(getMasterCredentials());
 }
 
-/**
- * Creates a new Twilio sub-account for a business. Called once, the
- * first time a business provisions a phone number.
- */
 export async function createSubAccount(
   businessName: string
 ): Promise<{ success: boolean; accountSid?: string; authToken?: string; reason?: string }> {
@@ -73,12 +40,6 @@ export async function createSubAccount(
   }
 }
 
-/**
- * Maps GetMade's internal, business-owner-facing voice IDs to a real
- * Twilio <Say> voice, used only as a fallback when ElevenLabs isn't
- * configured. The business owner never sees "Polly" or "Twilio"
- * anywhere, only their chosen name (Alex, Sarah, James, Emma).
- */
 const VOICE_MAP: Record<VoiceId, string> = {
   alex_professional: "Polly.Matthew-Neural",
   sarah_warm: "Polly.Joanna-Neural",
@@ -97,12 +58,6 @@ export interface ProvisionNumberResult {
   reason?: string;
 }
 
-/**
- * Searches for and purchases a real phone number UNDER THE GIVEN
- * SUB-ACCOUNT (not the master account), then points its voice webhook
- * at HavnLine's inbound-call route. Requires a funded Twilio account —
- * this makes a real, billable API call.
- */
 export async function provisionNumber(
   subAccountCreds: TwilioCredentials,
   areaCode?: string
@@ -178,12 +133,6 @@ export async function releaseNumber(
   }
 }
 
-/**
- * Validates that an inbound webhook request really came from Twilio.
- * Takes the auth token explicitly — for a sub-account's number, this
- * MUST be that sub-account's own auth token, not the master account's,
- * since that's what Twilio actually signed the request with.
- */
 export function validateTwilioSignature(
   signature: string | null,
   url: string,
@@ -201,11 +150,6 @@ export function validateTwilioSignature(
   }
   const valid = twilio.validateRequest(token, signature, url, params);
   if (!valid) {
-    // Temporary diagnostic logging — safe to remove once signature
-    // validation is confirmed stable again. Only logs a partial
-    // fingerprint of the token (first/last 4 characters) — enough to
-    // visually compare against Twilio Console's own partial reveal,
-    // never enough to reconstruct the real secret.
     const fingerprint = token.length > 8 ? `${token.slice(0, 4)}...${token.slice(-4)} (len ${token.length})` : "too short";
     console.error("Twilio signature validation FAILED.", {
       url,

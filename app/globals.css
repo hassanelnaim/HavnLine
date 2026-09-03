@@ -3,29 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    -webkit-font-smoothing: antialiased;
-  }
-  body {
-    @apply bg-paper text-text font-sans;
-    font-feature-settings: "cv11", "ss01";
-  }
-  h1, h2, h3, h4 {
-    @apply font-display text-ink;
-    letter-spacing: -0.01em;
-  }
-  ::selection {
-    background-color: #E9F0FE;
-  }
-}
-
-@layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #E6E1D6;
-    border-radius: 999px;
-  }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-paper text-text antialiased; font-family: 'Inter', -apple-system, sans-serif; }
+  ::selection { background-color: #E9F0FE; }
 }

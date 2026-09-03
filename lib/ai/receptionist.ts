@@ -1,68 +1,59 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadBusinessContext } from "./context";
-import { buildSystemPrompt } from "./systemPrompt";
-import { runClaudeTurn, isClaudeConfigured } from "./claude";
-
-/**
- * ai/receptionist.ts
- *
- * ONE receptionist brain. Test Receptionist and real phone calls both
- * call handleTurn() with the same businessId, same tools, same
- * calendar, same knowledge base — the only difference is `channel`,
- * which only affects tone (see systemPrompt.ts) and whether
- * transfer_call is usable.
- *
- * Conversation history is persisted to Supabase (`call_messages`)
- * rather than kept in memory, since serverless functions don't retain
- * state between requests — this also directly satisfies the
- * requirement that every call shows up as a real, inspectable record
- * in the dashboard.
- */
+import { runTurn, type ConversationMessage } from "./claude";
+import type { ToolContext } from "./tools";
 
 export interface HandleTurnResult {
   reply: string;
-  toolCalls: { name: string; input: any; result: any }[];
+  toolCalls: { name: string; input: unknown; result: any }[];
 }
 
-export async function startCall(
-  businessId: string,
-  customerName: string,
-  phone: string,
-  channel: "test" | "phone"
-): Promise<string> {
+export async function startCall(businessId: string, callerNumber: string, dialedNumber: string): Promise<string> {
   const admin = createAdminClient();
-  const { data } = await admin
+  const { data: call, error } = await admin
     .from("calls")
     .insert({
       business_id: businessId,
-      customer_name: customerName,
-      phone,
+      customer_name: "Phone Caller",
+      phone: callerNumber,
+      started_at: new Date().toISOString(),
+      duration_seconds: 0,
+      outcome: "no_action",
       status: "in_progress",
       handled_by: "ai",
-      outcome: "no_action",
     })
-    .select("id")
+    .select()
     .single();
-  return data?.id as string;
+
+  if (error || !call) throw new Error(error?.message || "Could not start call.");
+  return call.id;
 }
 
-export async function endCall(callId: string, durationSeconds: number) {
+export async function startTestSession(businessId: string): Promise<string> {
   const admin = createAdminClient();
-  const { data: call } = await admin.from("calls").select("outcome").eq("id", callId).single();
-  await admin
+  const { data: call, error } = await admin
     .from("calls")
-    .update({
-      status: "completed",
-      duration_seconds: durationSeconds,
+    .insert({
+      business_id: businessId,
+      customer_name: "Test Session",
+      phone: "test",
+      started_at: new Date().toISOString(),
+      duration_seconds: 0,
+      outcome: "no_action",
+      status: "in_progress",
+      handled_by: "ai",
     })
-    .eq("id", callId);
+    .select()
+    .single();
+
+  if (error || !call) throw new Error(error?.message || "Could not start test session.");
+  return call.id;
 }
 
 export async function handleTurn(
   businessId: string,
   callId: string,
-  userText: string,
+  userMessage: string,
   channel: "test" | "phone"
 ): Promise<HandleTurnResult> {
   const admin = createAdminClient();
@@ -72,67 +63,34 @@ export async function handleTurn(
     return { reply: "Sorry, I'm having trouble accessing business information right now.", toolCalls: [] };
   }
 
-  if (!isClaudeConfigured()) {
-    return {
-      reply:
-        "The AI brain isn't connected yet (ANTHROPIC_API_KEY is missing) — add it in your hosting provider's environment variables to enable real conversations.",
-      toolCalls: [],
-    };
-  }
-
-  // Persist the customer's message.
-  await admin.from("call_messages").insert({ call_id: callId, role: "customer", content: userText });
-
-  // Rebuild conversation history from what's actually stored, so this
-  // works correctly across separate serverless invocations.
   const { data: priorMessages } = await admin
     .from("call_messages")
-    .select("*")
+    .select("role, content")
     .eq("call_id", callId)
+    .neq("role", "system")
     .order("created_at", { ascending: true });
 
-  const history: Anthropic.MessageParam[] = (priorMessages || [])
-    .filter((m) => m.role !== "system")
-    .map((m) => ({
-      role: m.role === "customer" ? "user" : "assistant",
-      content: m.content,
-    }));
+  const history: ConversationMessage[] = (priorMessages || []).map((m) => ({
+    role: m.role === "ai" ? "assistant" : "user",
+    content: m.content,
+  }));
 
-  const systemPrompt = buildSystemPrompt(context, channel);
+  await admin.from("call_messages").insert({ call_id: callId, role: "customer", content: userMessage });
 
-  try {
-    const result = await runClaudeTurn(history, systemPrompt, {
-      businessId,
-      callId,
-      context,
-      channel,
-    });
+  const toolCtx: ToolContext = { businessId, callId, channel, context };
+  const result = await runTurn(history, userMessage, toolCtx);
 
-    await admin.from("call_messages").insert({
-      call_id: callId,
-      role: "ai",
-      content: result.reply,
-      tool_call: result.toolCalls.length > 0 ? JSON.stringify(result.toolCalls) : null,
-    });
+  await admin.from("call_messages").insert({
+    call_id: callId,
+    role: "ai",
+    content: result.reply,
+    tool_call: result.toolCalls.length > 0 ? JSON.stringify(result.toolCalls.map((t) => t.name)) : null,
+  });
 
-    // If nothing else set a more specific outcome (booking/escalation),
-    // mark this as a plain answered question.
-    const { data: call } = await admin.from("calls").select("outcome").eq("id", callId).single();
-    if (call?.outcome === "no_action") {
-      await admin.from("calls").update({ outcome: "question_answered" }).eq("id", callId);
-    }
+  return result;
+}
 
-    return { reply: result.reply, toolCalls: result.toolCalls };
-  } catch (err) {
-    console.error("AI receptionist turn failed:", err);
-    await admin.from("call_messages").insert({
-      call_id: callId,
-      role: "ai",
-      content: "Sorry, I'm having trouble right now — let me get someone to help.",
-    });
-    return {
-      reply: "Sorry, I'm having trouble right now — let me get someone to help.",
-      toolCalls: [],
-    };
-  }
+export async function endCall(callId: string, durationSeconds: number): Promise<void> {
+  const admin = createAdminClient();
+  await admin.from("calls").update({ status: "completed", duration_seconds: durationSeconds }).eq("id", callId);
 }

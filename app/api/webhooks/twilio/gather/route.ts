@@ -3,26 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { handleTurn } from "@/lib/ai/receptionist";
 import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
-import {
-  twiml,
-  escapeXml,
-  buildTurnResponseTwiml,
-  lastTurnUsedTool,
-  textLikelyNeedsTool,
-  sayLine,
-  getRequestUrl,
-} from "@/lib/ai/twimlHelpers";
+import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, textLikelyNeedsTool, sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-// A short, natural-sounding acknowledgment so the caller hears
-// something immediately instead of dead air while the AI genuinely
-// needs a few seconds (checking the calendar, looking up a customer,
-// etc.). Only used when this turn looks likely to need one — either
-// because the last AI response used a tool, or because what the
-// caller just said sounds like it will (e.g. "I'd like to book an
-// appointment") — so it doesn't play before every single response,
-// only the ones actually likely to take a moment.
 const FILLERS = [
   "Sure, let me check that for you.",
   "Great, one moment.",
@@ -31,19 +15,6 @@ const FILLERS = [
   "Sure thing, one sec.",
 ];
 
-/**
- * POST /api/webhooks/twilio/gather
- *
- * Fires the instant Twilio finishes transcribing the caller's speech.
- * Decides, per turn, whether the upcoming AI response is likely to
- * take a moment — based on whether the previous turn used a tool, OR
- * whether the caller's own words sound like they'll need one (this
- * second signal specifically catches the FIRST booking-shaped request
- * in a conversation, which the previous-turn signal alone would miss)
- * — and either answers immediately (fast path, most casual turns) or
- * plays a brief acknowledgment first and redirects to /process for the
- * real work.
- */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
   if (!callId) return new NextResponse("Missing callId", { status: 400 });
@@ -54,13 +25,8 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
   const { data: call } = await admin.from("calls").select("business_id").eq("id", callId).single();
-  if (!call) {
-    return twiml(`<Response><Say>Sorry, something went wrong. Goodbye.</Say><Hangup/></Response>`);
-  }
+  if (!call) return twiml(`<Response><Say>Sorry, something went wrong. Goodbye.</Say><Hangup/></Response>`);
 
-  // Validate using THIS business's own sub-account auth token — not a
-  // shared master token — since that's what Twilio actually signed
-  // the request with.
   const authToken = await getBusinessTwilioAuthToken(call.business_id);
   const signature = request.headers.get("x-twilio-signature");
   const fullUrl = getRequestUrl(request);
@@ -68,11 +34,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
-  const { data: voiceConfig } = await admin
-    .from("ai_voice_configs")
-    .select("voice_id, provider_voice_ref")
-    .eq("business_id", call.business_id)
-    .maybeSingle();
+  const { data: voiceConfig } = await admin.from("ai_voice_configs").select("voice_id, provider_voice_ref").eq("business_id", call.business_id).maybeSingle();
   const voice = { voiceId: voiceConfig?.voice_id as any, providerVoiceRef: voiceConfig?.provider_voice_ref };
 
   const speechResult = params.SpeechResult;
@@ -91,18 +53,15 @@ export async function POST(request: NextRequest) {
   const likelySlow = (await lastTurnUsedTool(callId)) || textLikelyNeedsTool(speechResult);
 
   if (!likelySlow) {
-    // Fast path: answer directly, no filler. Most simple/casual turns
-    // land here and feel snappy since there's no extra round trip.
     const result = await handleTurn(call.business_id, callId, speechResult, "phone");
     return buildTurnResponseTwiml(call.business_id, callId, result, voice);
   }
 
-  // Slow path: acknowledge immediately, then do the real work in /process.
   const filler = FILLERS[Math.floor(Math.random() * FILLERS.length)];
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  ${sayLine(voice, filler)}
+  ${sayLine(voice, filler, true)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }

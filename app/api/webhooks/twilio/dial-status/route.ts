@@ -4,17 +4,15 @@ import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
 /**
  * POST /api/webhooks/twilio/dial-status
  *
- * Fires after a transfer_call <Dial> finishes, whether it was
- * answered or not. If nobody picked up, this is the fallback that
- * turns a missed live transfer into a normal logged escalation
- * (exactly like escalate_to_human) instead of the caller just hearing
- * silence and the call ending with nothing recorded — the same idea
- * as a call going to voicemail when the front desk doesn't pick up.
+ * Fires after a live transfer attempt (<Dial>) finishes, whether
+ * answered, unanswered, busy, or failed. If nobody answered, this
+ * converts it into a real logged escalation — same as
+ * escalate_to_human — so the caller hears a graceful closing message
+ * instead of dead air, and the business still sees it in their
+ * dashboard to follow up on.
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
@@ -47,25 +45,12 @@ export async function POST(request: NextRequest) {
   if (call) {
     await admin
       .from("calls")
-      .update({
-        outcome: "escalated",
-        escalation_reason: "Customer asked to speak with someone, but the transfer wasn't answered.",
-      })
+      .update({ outcome: "escalated", escalation_reason: "Live transfer attempted but nobody answered." })
       .eq("id", callId);
-
-    await admin.from("call_messages").insert({
-      call_id: callId,
-      role: "system",
-      content: `Live transfer attempted (status: ${dialCallStatus}) — no one answered.`,
-    });
   }
 
   const { data: voiceConfig } = call
-    ? await admin
-        .from("ai_voice_configs")
-        .select("voice_id, provider_voice_ref")
-        .eq("business_id", call.business_id)
-        .maybeSingle()
+    ? await admin.from("ai_voice_configs").select("voice_id, provider_voice_ref").eq("business_id", call.business_id).maybeSingle()
     : { data: null };
   const voice = { voiceId: voiceConfig?.voice_id as any, providerVoiceRef: voiceConfig?.provider_voice_ref };
 

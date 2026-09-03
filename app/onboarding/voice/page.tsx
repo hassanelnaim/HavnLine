@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "@/lib/onboarding/context";
 import { StepShell } from "@/components/onboarding/step-shell";
@@ -10,16 +9,8 @@ export default function VoiceStep() {
   const { draft, update } = useOnboarding();
 
   return (
-    <StepShell
-      title="Choose a voice"
-      description="Browse real voices and pick how your receptionist sounds on the phone. You can change this anytime."
-      backHref="/onboarding/ai-receptionist"
-      onContinue={() => router.push("/onboarding/calendar")}
-    >
-      <ElevenLabsVoiceBrowser
-        selectedVoiceRef={draft.customVoiceRef}
-        onSelect={(id, name) => update({ customVoiceRef: id, customVoiceName: name, voiceId: "custom" })}
-      />
+    <StepShell title="Choose a voice" description="Browse real voices and pick how your receptionist sounds on the phone. You can change this anytime." backHref="/onboarding/ai-receptionist" onContinue={() => router.push("/onboarding/calendar")}>
+      <ElevenLabsVoiceBrowser selectedVoiceRef={draft.customVoiceRef} onSelect={(id, name) => update({ customVoiceRef: id, customVoiceName: name, voiceId: "custom" })} />
     </StepShell>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
@@ -7,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
 const SelectValue = SelectPrimitive.Value;
-const SelectGroup = SelectPrimitive.Group;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -16,9 +14,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-[13.5px] text-text",
-      "focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand",
-      "disabled:cursor-not-allowed disabled:opacity-50",
+      "flex h-9 w-full items-center justify-between rounded-lg border border-border bg-card px-3 text-[13.5px] text-text focus:outline-none focus:ring-2 focus:ring-brand/30",
       className
     )}
     {...props}
@@ -38,12 +34,8 @@ const SelectContent = React.forwardRef<
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
+      className={cn("z-50 overflow-hidden rounded-lg border border-border bg-card shadow-popover", className)}
       position={position}
-      className={cn(
-        "relative z-50 max-h-60 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card shadow-popover",
-        position === "popper" && "translate-y-1",
-        className
-      )}
       {...props}
     >
       <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
@@ -59,8 +51,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-[13px] text-text outline-none",
-      "data-[highlighted]:bg-paper data-[state=checked]:font-medium",
+      "relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-[13px] text-text outline-none hover:bg-paper",
       className
     )}
     {...props}
@@ -75,4 +66,4 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem };
+export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem };

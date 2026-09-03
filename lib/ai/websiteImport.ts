@@ -2,19 +2,6 @@ import * as cheerio from "cheerio";
 import Anthropic from "@anthropic-ai/sdk";
 import type { KnowledgeCategory } from "@/lib/database/types";
 
-/**
- * ai/websiteImport.ts
- *
- * "Import from your website" — the business owner pastes their site
- * URL, we fetch the page server-side, strip it down to readable text,
- * and ask Claude to pull out genuine, factual knowledge items (FAQs,
- * services, policies, general info) from what's actually on the page.
- *
- * Nothing here is invented — Claude is explicitly instructed to only
- * extract what's really present on the page, the same "never make
- * things up" rule that governs the AI receptionist itself.
- */
-
 const MAX_CHARS = 15000;
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
@@ -38,7 +25,11 @@ export async function fetchWebsiteText(url: string): Promise<string> {
   try {
     response = await fetch(normalizedUrl, {
       signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; GetMadeBot/1.0)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
     });
   } finally {
     clearTimeout(timeout);
@@ -52,10 +43,7 @@ export async function fetchWebsiteText(url: string): Promise<string> {
   const $ = cheerio.load(html);
   $("script, style, noscript, svg, nav, footer").remove();
 
-  const text = $("body")
-    .text()
-    .replace(/\s+/g, " ")
-    .trim();
+  const text = $("body").text().replace(/\s+/g, " ").trim();
 
   if (text.length < 50) {
     throw new Error("Couldn't find enough readable content on that page.");
@@ -64,14 +52,9 @@ export async function fetchWebsiteText(url: string): Promise<string> {
   return text.slice(0, MAX_CHARS);
 }
 
-export async function extractKnowledgeFromText(
-  businessName: string,
-  websiteText: string
-): Promise<ExtractedKnowledgeItem[]> {
+export async function extractKnowledgeFromText(businessName: string, websiteText: string): Promise<ExtractedKnowledgeItem[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured.");
-  }
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
 
   const client = new Anthropic({ apiKey });
 
@@ -79,12 +62,7 @@ export async function extractKnowledgeFromText(
     model: MODEL,
     max_tokens: 2048,
     system: `You extract factual business knowledge from raw website text for "${businessName}". Only extract information that is genuinely present in the text — never invent, guess, or embellish. Respond with ONLY a JSON array, no other text, no markdown fences. Each item: {"category": "faq"|"business_info"|"policy"|"services"|"custom", "question": string (only for category "faq"), "title": string (for non-faq categories), "content": string}. Aim for 5-15 concise, genuinely useful items. Skip navigation text, cookie notices, and anything not substantive.`,
-    messages: [
-      {
-        role: "user",
-        content: `Extract knowledge items from this website text:\n\n${websiteText}`,
-      },
-    ],
+    messages: [{ role: "user", content: `Extract knowledge items from this website text:\n\n${websiteText}` }],
   });
 
   const textBlock = response.content.find((b) => b.type === "text");
@@ -98,9 +76,7 @@ export async function extractKnowledgeFromText(
     return parsed
       .filter((item) => item && typeof item.content === "string" && item.content.trim())
       .map((item) => ({
-        category: (["faq", "business_info", "policy", "services", "custom"].includes(item.category)
-          ? item.category
-          : "custom") as KnowledgeCategory,
+        category: (["faq", "business_info", "policy", "services", "custom"].includes(item.category) ? item.category : "custom") as KnowledgeCategory,
         question: typeof item.question === "string" ? item.question : undefined,
         title: typeof item.title === "string" ? item.title : undefined,
         content: item.content,
@@ -113,38 +89,21 @@ export async function extractKnowledgeFromText(
 export interface ExtractedService {
   name: string;
   description: string;
-  priceDollars: string; // "" if not found on the site — never invented
-  durationMinutes: number; // defaults to 30 if not stated
+  priceDollars: string;
+  durationMinutes: number;
 }
 
-/**
- * Pulls structured SERVICES (name, price, duration) out of raw website
- * text — used by onboarding's "What do you offer?" step so a business
- * owner can paste their site instead of typing every service by hand.
- * Separate from extractKnowledgeFromText() because this needs a
- * strict, price/duration-shaped schema rather than loose FAQ text.
- */
-export async function extractServicesFromText(
-  businessName: string,
-  websiteText: string
-): Promise<ExtractedService[]> {
+export async function extractServicesFromText(businessName: string, websiteText: string): Promise<ExtractedService[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured.");
-  }
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
 
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 1500,
-    system: `You extract a list of SERVICES (things customers can book/buy) from raw website text for "${businessName}". Only include services that are genuinely mentioned in the text — never invent a service, price, or duration that isn't there. Respond with ONLY a JSON array, no other text, no markdown fences. Each item: {"name": string, "description": string (short, one line), "priceDollars": string (just the number as a string, e.g. "59.99" — empty string "" if no price is stated), "durationMinutes": number (your best reasonable estimate if not explicitly stated, otherwise the real stated duration)}. Skip navigation text and anything that isn't really a bookable service.`,
-    messages: [
-      {
-        role: "user",
-        content: `Extract the list of services from this website text:\n\n${websiteText}`,
-      },
-    ],
+    system: `You extract a list of SERVICES (things customers can book/buy) from raw website text for "${businessName}". Only include services that are genuinely mentioned in the text — never invent a service, price, or duration that isn't there. Respond with ONLY a JSON array, no other text, no markdown fences. Each item: {"name": string, "description": string (short, one line), "priceDollars": string (just the number as a string — empty string "" if no price is stated), "durationMinutes": number (your best reasonable estimate if not explicitly stated)}. Skip navigation text and anything that isn't really a bookable service.`,
+    messages: [{ role: "user", content: `Extract the list of services from this website text:\n\n${websiteText}` }],
   });
 
   const textBlock = response.content.find((b) => b.type === "text");

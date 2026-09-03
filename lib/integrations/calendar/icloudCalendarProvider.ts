@@ -9,39 +9,20 @@ import type {
 } from "./index";
 import { supabaseCalendarProvider } from "./supabaseCalendarProvider";
 
-/**
- * integrations/calendar/icloudCalendarProvider.ts
- *
- * Apple/iCloud Calendar via CalDAV — a genuinely different connection
- * model than Google. Apple doesn't support OAuth for this; instead the
- * business owner generates an "app-specific password" from their own
- * Apple ID account (appleid.apple.com -> Sign-In and Security ->
- * App-Specific Passwords) and enters their Apple ID email + that
- * password directly into HavnLine. There's no "Connect with Apple"
- * redirect button — this is a real, standard limitation of how Apple's
- * calendar sync works, not something GetMade can smooth over.
- *
- * The password is scoped by Apple to calendar/contacts access only
- * (not full Apple ID access) and can be revoked anytime from the same
- * Apple ID settings page — this is Apple's own intended, safe way for
- * third-party apps to connect.
- */
-
 interface ICloudCredentials {
   appleId: string;
   appPassword: string;
 }
+
+type DAVClientInstance = Awaited<ReturnType<typeof createDAVClient>>;
 
 function icsEscape(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
 function toICSDate(iso: string): string {
-  // CalDAV expects "YYYYMMDDTHHMMSSZ" — convert from our ISO strings.
   return new Date(iso).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 }
-
-type DAVClientInstance = Awaited<ReturnType<typeof createDAVClient>>;
 
 async function getClient(creds: ICloudCredentials): Promise<DAVClientInstance | null> {
   try {
@@ -58,11 +39,6 @@ async function getClient(creds: ICloudCredentials): Promise<DAVClientInstance | 
   }
 }
 
-/**
- * Validates Apple ID + app-specific password actually work, used when
- * the business owner first connects — lets us show a clear error
- * immediately rather than silently failing later on a real call.
- */
 export async function testICloudConnection(
   appleId: string,
   appPassword: string
@@ -77,7 +53,7 @@ export async function testICloudConnection(
       return { success: false, reason: "Connected, but no calendars were found on this Apple ID." };
     }
     return { success: true };
-  } catch (err) {
+  } catch {
     return { success: false, reason: "Could not read your calendars — check the password hasn't been revoked." };
   }
 }
@@ -99,8 +75,6 @@ async function getCredentialsForBusiness(businessId: string): Promise<ICloudCred
 
 async function getPrimaryCalendar(client: DAVClientInstance) {
   const calendars = await client.fetchCalendars();
-  // Prefer a calendar literally called "Calendar" or "Home" (iCloud's
-  // default names) if present, otherwise just take the first writable one.
   return (
     calendars.find((c) => typeof c.displayName === "string" && /calendar|home/i.test(c.displayName)) ||
     calendars[0]
@@ -124,12 +98,8 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
     const dayStart = `${input.date}T00:00:00Z`;
     const dayEnd = `${input.date}T23:59:59Z`;
 
-    const objects = await client.fetchCalendarObjects({
-      calendar,
-      timeRange: { start: dayStart, end: dayEnd },
-    });
+    const objects = await client.fetchCalendarObjects({ calendar, timeRange: { start: dayStart, end: dayEnd } });
 
-    // Parse busy blocks out of each event's raw iCalendar data.
     const busyRanges = objects
       .map((obj) => {
         const data = obj.data || "";
@@ -154,7 +124,7 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
     return { open: true, slots: filteredSlots };
   } catch (err) {
     console.error("iCloud Calendar availability check failed:", err);
-    return baseline; // fail open to the business-hours baseline
+    return baseline;
   }
 }
 
@@ -187,11 +157,7 @@ async function createEvent(input: CreateEventInput): Promise<CreateEventResult> 
       .filter(Boolean)
       .join("\r\n");
 
-    await client.createCalendarObject({
-      calendar,
-      filename: `${uid}.ics`,
-      iCalString: ics,
-    });
+    await client.createCalendarObject({ calendar, filename: `${uid}.ics`, iCalString: ics });
 
     return { success: true, eventId: uid };
   } catch (err) {
@@ -201,11 +167,6 @@ async function createEvent(input: CreateEventInput): Promise<CreateEventResult> 
 }
 
 async function updateEvent(): Promise<CreateEventResult> {
-  // Rescheduling an iCloud event requires fetching, modifying, and
-  // re-uploading its full iCalendar object (CalDAV has no partial
-  // update) — not yet implemented. Reschedule still updates HavnLine's
-  // own appointment record correctly; it just won't move the iCloud
-  // calendar entry until this is built out.
   return { success: true };
 }
 

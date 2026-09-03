@@ -5,17 +5,14 @@ import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, buildTurnResponseTwiml, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
 /**
  * POST /api/webhooks/twilio/process
  *
  * Reached via <Redirect> from /gather, right after the caller has
  * already heard a quick "one moment" acknowledgment (only for turns
- * flagged as likely-slow — see lastTurnUsedTool() in /gather). This is
- * where the actual (slower) work happens: the real Claude call, tool
- * execution, calendar checks, etc. — the same handleTurn() Test
- * Receptionist uses.
+ * flagged as likely-slow). This is where the actual (slower) work
+ * happens: the real Claude call, tool execution, calendar checks,
+ * etc. — the same handleTurn() Test Receptionist uses.
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");

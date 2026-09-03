@@ -13,7 +13,7 @@ interface GoogleTokenMetadata {
   access_token: string;
   refresh_token: string;
   expiry_date?: number;
-  calendar_id?: string; // defaults to "primary"
+  calendar_id?: string;
 }
 
 function getOAuthClient() {
@@ -50,7 +50,6 @@ async function getCalendarClient(businessId: string) {
     expiry_date: tokens.expiry_date,
   });
 
-  // Persist a refreshed access token back to Supabase if googleapis rotates it.
   oauth2Client.on("tokens", async (newTokens) => {
     if (!newTokens.access_token) return;
     const admin = createAdminClient();
@@ -72,24 +71,17 @@ async function getCalendarClient(businessId: string) {
 }
 
 async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabilityResult> {
-  // Start from business-hours-aware slots (same logic as the Supabase
-  // provider), then remove anything that overlaps a busy block on the
-  // connected Google Calendar.
   const baseline = await supabaseCalendarProvider.getAvailability(input);
   if (!baseline.open || baseline.slots.length === 0) return baseline;
 
   const client = await getCalendarClient(input.businessId);
-  if (!client) return baseline; // connection dropped/misconfigured — fall back gracefully
+  if (!client) return baseline;
 
   try {
     const dayStart = `${input.date}T00:00:00Z`;
     const dayEnd = `${input.date}T23:59:59Z`;
     const freebusy = await client.calendar.freebusy.query({
-      requestBody: {
-        timeMin: dayStart,
-        timeMax: dayEnd,
-        items: [{ id: client.calendarId }],
-      },
+      requestBody: { timeMin: dayStart, timeMax: dayEnd, items: [{ id: client.calendarId }] },
     });
 
     const busy = freebusy.data.calendars?.[client.calendarId]?.busy || [];
@@ -106,7 +98,7 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
     return { open: true, slots: filteredSlots };
   } catch (err) {
     console.error("Google Calendar freebusy check failed:", err);
-    return baseline; // fail open to the business-hours baseline rather than blocking booking entirely
+    return baseline;
   }
 }
 
@@ -115,11 +107,7 @@ async function createEvent(input: CreateEventInput): Promise<CreateEventResult> 
   if (!client) return { success: false, reason: "Google Calendar is not connected." };
 
   const admin = createAdminClient();
-  const { data: business } = await admin
-    .from("businesses")
-    .select("timezone")
-    .eq("id", input.businessId)
-    .single();
+  const { data: business } = await admin.from("businesses").select("timezone").eq("id", input.businessId).single();
   const timeZone = business?.timezone || "America/New_York";
 
   try {

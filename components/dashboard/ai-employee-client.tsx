@@ -1,7 +1,6 @@
 "use client";
-
 import { useState, useTransition } from "react";
-import { Bot, Mic, Sliders, Clock, ShieldAlert, Sparkles } from "lucide-react";
+import { Sparkles, Mic } from "lucide-react";
 import type { AiResponsibilities, DbAiReceptionist, DbAiVoiceConfig, DbBusinessHours, Personality } from "@/lib/database/types";
 import { updateAiEmployeeAction } from "@/app/actions/business";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -11,9 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ElevenLabsVoiceBrowser } from "@/components/voice/elevenlabs-voice-browser";
-import { AiStatusToggle } from "@/components/dashboard/ai-status-toggle";
 import { cn } from "@/lib/utils";
 
 const PERSONALITIES: { id: Personality; label: string }[] = [
@@ -33,227 +30,120 @@ const RESPONSIBILITY_ITEMS: { key: keyof AiResponsibilities; label: string }[] =
   { key: "escalate_to_human", label: "Escalating to a human" },
 ];
 
-const WEEKDAY_LABELS: Record<string, string> = {
-  monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun",
-};
+const WEEKDAY_LABELS: Record<string, string> = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
 
-export function AiEmployeeClient({
-  ai,
-  voice,
-  hours,
-}: {
-  ai: DbAiReceptionist;
-  voice: DbAiVoiceConfig;
-  hours: DbBusinessHours[];
-}) {
+export function AiEmployeeClient({ ai, voice, hours }: { ai: DbAiReceptionist; voice: DbAiVoiceConfig; hours: DbBusinessHours[] }) {
   const [name, setName] = useState(ai.name);
   const [personality, setPersonality] = useState(ai.personality);
   const [responsibilities, setResponsibilities] = useState(ai.responsibilities);
-  const [voiceId, setVoiceId] = useState(voice.voice_id);
-  const [customVoiceRef, setCustomVoiceRef] = useState<string | null>(
-    voice.voice_id === "custom" ? voice.provider_voice_ref : null
-  );
-  const [customVoiceName, setCustomVoiceName] = useState<string | null>(
-    voice.voice_id === "custom" ? voice.provider_voice_name : null
-  );
   const [bookingRules, setBookingRules] = useState(ai.booking_rules || "");
   const [escalationRules, setEscalationRules] = useState(ai.escalation_rules || "");
+  const [voiceId, setVoiceId] = useState(voice.voice_id);
+  const [customVoiceRef, setCustomVoiceRef] = useState<string | null>(voice.voice_id === "custom" ? voice.provider_voice_ref : null);
+  const [customVoiceName, setCustomVoiceName] = useState<string | null>(voice.voice_id === "custom" ? voice.provider_voice_name : null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  function toggleResponsibility(key: keyof AiResponsibilities) {
-    setResponsibilities((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
 
   function handleSave() {
     setError(null);
     startTransition(async () => {
       const result = await updateAiEmployeeAction({
-        name,
-        personality,
-        responsibilities,
-        voiceId,
-        bookingRules,
-        escalationRules,
-        customVoice:
-          customVoiceRef && customVoiceName
-            ? { providerVoiceRef: customVoiceRef, providerVoiceName: customVoiceName }
-            : null,
+        name, personality, responsibilities, voiceId, bookingRules, escalationRules,
+        customVoice: customVoiceRef && customVoiceName ? { providerVoiceRef: customVoiceRef, providerVoiceName: customVoiceName } : null,
       });
-      if (!result.success) {
-        setError(result.error || "Could not save changes.");
-        return;
-      }
+      if (!result.success) { setError(result.error || "Could not save changes."); return; }
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
     });
   }
 
   return (
-    <div>
-      <Card className="mb-5">
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ink font-display text-[16px] font-semibold text-white">
-              {(name || ai.name)[0]}
-            </div>
+    <Tabs defaultValue="personality">
+      <TabsList>
+        <TabsTrigger value="personality">Personality</TabsTrigger>
+        <TabsTrigger value="voice"><Mic className="h-3.5 w-3.5" /> Voice</TabsTrigger>
+        <TabsTrigger value="responsibilities">Responsibilities</TabsTrigger>
+        <TabsTrigger value="behavior">Business behavior</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="personality">
+        <Card>
+          <CardHeader>
+            <CardTitle>Identity &amp; personality</CardTitle>
+            <CardDescription>The name and tone {name || ai.name} uses on every call.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div><Label>Receptionist name</Label><Input className="mt-1.5 max-w-xs" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            {customVoiceName && (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-paper px-3.5 py-2.5 text-[12.5px] text-text-muted">
+                <Mic className="h-3.5 w-3.5 text-brand" /> Voice: <span className="font-medium text-ink">{customVoiceName}</span>
+                <span className="text-text-faint">— change this in the Voice tab</span>
+              </div>
+            )}
             <div>
-              <div className="text-[15px] font-semibold text-ink">{name || ai.name}</div>
-              <div className="text-[12px] capitalize text-text-muted">{personality}</div>
+              <Label>Tone</Label>
+              <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {PERSONALITIES.map((p) => (
+                  <button key={p.id} onClick={() => setPersonality(p.id)} className={cn("rounded-xl border px-3 py-3 text-[13px] font-medium transition-colors", personality === p.id ? "border-brand bg-brand-soft text-brand-dark" : "border-border bg-card text-text hover:bg-paper")}>{p.label}</button>
+                ))}
+              </div>
             </div>
-          </div>
-          <AiStatusToggle initialStatus={ai.status} />
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
-      <Tabs defaultValue="personality">
-        <TabsList>
-          <TabsTrigger value="personality"><Sliders className="h-3.5 w-3.5" /> Personality</TabsTrigger>
-          <TabsTrigger value="voice"><Mic className="h-3.5 w-3.5" /> Voice</TabsTrigger>
-          <TabsTrigger value="responsibilities"><Bot className="h-3.5 w-3.5" /> Responsibilities</TabsTrigger>
-          <TabsTrigger value="behavior"><ShieldAlert className="h-3.5 w-3.5" /> Business behavior</TabsTrigger>
-        </TabsList>
+      <TabsContent value="voice">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand" /> Voice</CardTitle>
+            <CardDescription>{customVoiceName ? `Currently using: ${customVoiceName}` : "Browse your ElevenLabs voice library and pick a voice."}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ElevenLabsVoiceBrowser selectedVoiceRef={customVoiceRef} onSelect={(id, name) => { setCustomVoiceRef(id); setCustomVoiceName(name); }} />
+          </CardContent>
+        </Card>
+      </TabsContent>
 
-        <TabsContent value="personality">
-          <Card>
-            <CardHeader>
-              <CardTitle>Identity &amp; personality</CardTitle>
-              <CardDescription>The name and tone {name || ai.name} uses on every call.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <Label>Receptionist name</Label>
-                <Input className="mt-1.5 max-w-xs" value={name} onChange={(e) => setName(e.target.value)} />
+      <TabsContent value="responsibilities">
+        <Card>
+          <CardHeader><CardTitle>Responsibilities</CardTitle><CardDescription>What {name || ai.name} is allowed to do on its own.</CardDescription></CardHeader>
+          <CardContent className="divide-y divide-border-soft">
+            {RESPONSIBILITY_ITEMS.map((item) => (
+              <div key={item.key} className="flex items-center justify-between py-3">
+                <span className="text-[13.5px] font-medium text-text">{item.label}</span>
+                <Switch checked={responsibilities[item.key]} onCheckedChange={(checked) => setResponsibilities((prev) => ({ ...prev, [item.key]: checked }))} />
               </div>
-              {customVoiceName && (
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-paper px-3.5 py-2.5 text-[12.5px] text-text-muted">
-                  <Mic className="h-3.5 w-3.5 text-brand" />
-                  Voice: <span className="font-medium text-ink">{customVoiceName}</span>
-                  <span className="text-text-faint">— change this in the Voice tab</span>
-                </div>
-              )}
-              <div>
-                <Label>Tone</Label>
-                <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  {PERSONALITIES.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setPersonality(p.id)}
-                      className={cn(
-                        "rounded-xl border px-3 py-3 text-[13px] font-medium transition-colors",
-                        personality === p.id
-                          ? "border-brand bg-brand-soft text-brand-dark"
-                          : "border-border bg-card text-text hover:bg-paper"
-                      )}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            ))}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
-        <TabsContent value="voice">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-brand" /> Voice
-              </CardTitle>
-              <CardDescription>
-                {customVoiceName
-                  ? `Currently using: ${customVoiceName}`
-                  : "Browse your ElevenLabs voice library and pick a voice — real previews, the exact voice used on real calls."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ElevenLabsVoiceBrowser
-                selectedVoiceRef={customVoiceRef}
-                onSelect={(id, name) => {
-                  setCustomVoiceRef(id);
-                  setCustomVoiceName(name);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <TabsContent value="behavior">
+        <Card className="mb-4">
+          <CardHeader><CardTitle>Business hours</CardTitle><CardDescription>Edit these from Settings → Hours.</CardDescription></CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {hours.map((h) => (
+              <span key={h.weekday} className="rounded-full border border-border bg-paper px-3 py-1 text-[12px] text-text-muted">
+                {WEEKDAY_LABELS[h.weekday]}: {h.is_open ? `${h.open_time}–${h.close_time}` : "Closed"}
+              </span>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Rules</CardTitle><CardDescription>Extra instructions layered on top of the defaults.</CardDescription></CardHeader>
+          <CardContent className="space-y-4">
+            <div><Label>Booking rules</Label><Textarea rows={3} className="mt-1.5" value={bookingRules} onChange={(e) => setBookingRules(e.target.value)} /></div>
+            <div><Label>Escalation rules</Label><Textarea rows={3} className="mt-1.5" value={escalationRules} onChange={(e) => setEscalationRules(e.target.value)} /></div>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
-        <TabsContent value="responsibilities">
-          <Card>
-            <CardHeader>
-              <CardTitle>Enabled capabilities</CardTitle>
-              <CardDescription>What {ai.name} is allowed to do without asking.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border-soft">
-                {RESPONSIBILITY_ITEMS.map((item) => (
-                  <div key={item.key} className="flex items-center justify-between px-5 py-3.5">
-                    <span className="text-[13.5px] font-medium text-text">{item.label}</span>
-                    <Switch
-                      checked={responsibilities[item.key]}
-                      onCheckedChange={() => toggleResponsibility(item.key)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="behavior">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-text-faint" /> Business hours
-                </CardTitle>
-                <CardDescription>Edit these from Settings → Hours.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {hours.map((h) => (
-                  <Badge key={h.weekday} variant={h.is_open ? "neutral" : "danger"}>
-                    {WEEKDAY_LABELS[h.weekday]} {h.is_open ? `${h.open_time}–${h.close_time}` : "Closed"}
-                  </Badge>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Booking rules</CardTitle>
-                <CardDescription>Plain-language guidance for how appointments should be handled.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea rows={3} value={bookingRules} onChange={(e) => setBookingRules(e.target.value)} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Escalation rules</CardTitle>
-                <CardDescription>When {ai.name} should hand off to a human instead of guessing.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea rows={3} value={escalationRules} onChange={(e) => setEscalationRules(e.target.value)} />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {error && (
-        <div className="mt-4 rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
-          {error}
-        </div>
-      )}
       <div className="mt-6 flex items-center gap-3">
-        <Button variant="brand" onClick={handleSave} disabled={isPending}>
-          {isPending ? "Saving…" : "Save changes"}
-        </Button>
+        <Button variant="brand" onClick={handleSave} disabled={isPending}>{isPending ? "Saving…" : "Save changes"}</Button>
         {saved && <span className="text-[12.5px] font-medium text-success">Saved ✓</span>}
+        {error && <span className="text-[12.5px] font-medium text-danger">{error}</span>}
       </div>
-    </div>
+    </Tabs>
   );
 }

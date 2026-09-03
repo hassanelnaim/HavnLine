@@ -8,21 +8,8 @@ export interface ImportOnboardingServicesResult {
   services?: { name: string; description: string; priceDollars: string; durationMinutes: number }[];
 }
 
-/**
- * Used on the onboarding "What do you offer?" step — reads the
- * business's real website and returns a structured list of services
- * for the owner to review/edit, instead of typing each one by hand.
- * Doesn't save anything itself — the caller merges the results into
- * the onboarding draft, same as manually-typed services, and they're
- * saved for real when onboarding completes.
- */
-export async function importOnboardingServicesAction(
-  url: string,
-  businessName: string
-): Promise<ImportOnboardingServicesResult> {
-  if (!url.trim()) {
-    return { success: false, error: "Enter a website URL first." };
-  }
+export async function importOnboardingServicesAction(url: string, businessName: string): Promise<ImportOnboardingServicesResult> {
+  if (!url.trim()) return { success: false, error: "Enter a website URL first." };
 
   let websiteText: string;
   try {
@@ -39,10 +26,7 @@ export async function importOnboardingServicesAction(
   }
 
   if (services.length === 0) {
-    return {
-      success: false,
-      error: "Couldn't find any services on that page — try a Services or Pricing page specifically, or add them manually below.",
-    };
+    return { success: false, error: "Couldn't find any services on that page — try a Services or Pricing page specifically, or add them manually below." };
   }
 
   return { success: true, services };

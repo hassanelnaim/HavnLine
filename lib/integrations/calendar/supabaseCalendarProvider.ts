@@ -10,8 +10,6 @@ import type {
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 function parseTimeToMinutes(timeStr: string): number | null {
-  // Postgres `time` columns come back from Supabase as "HH:MM:SS" (with
-  // seconds), not just "HH:MM" — accept both.
   const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (!match) return null;
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
@@ -97,11 +95,7 @@ async function getAvailability(input: GetAvailabilityInput): Promise<GetAvailabi
   return { open: true, slots };
 }
 
-async function createEvent(input: CreateEventInput): Promise<CreateEventResult> {
-  // The Supabase provider doesn't have an external calendar to write to —
-  // the appointment row itself (created by the book_appointment tool) IS
-  // the record. Nothing further to do here; report success so the
-  // caller's flow continues uniformly with the Google provider.
+async function createEvent(_input: CreateEventInput): Promise<CreateEventResult> {
   return { success: true, eventId: undefined };
 }
 

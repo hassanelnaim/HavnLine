@@ -2,21 +2,20 @@
 
 import * as React from "react";
 import type { AiResponsibilities, Personality, VoiceId, Weekday } from "@/lib/database/types";
-import { DEFAULT_RESPONSIBILITIES } from "@/lib/ai/generateInstructions";
-
-export interface OnboardingServiceDraft {
-  id: string;
-  name: string;
-  description: string;
-  price: string; // dollars, string for controlled input
-  durationMinutes: number;
-}
 
 export interface OnboardingHoursDraft {
   weekday: Weekday;
   isOpen: boolean;
   openTime: string;
   closeTime: string;
+}
+
+export interface OnboardingServiceDraft {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  durationMinutes: number;
 }
 
 export interface OnboardingDraft {
@@ -43,15 +42,16 @@ export interface OnboardingDraft {
   calendarProvider: "google_calendar" | "microsoft_outlook" | null;
 }
 
-const WEEKDAYS: Weekday[] = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-];
+const WEEKDAYS: Weekday[] = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+export const DEFAULT_RESPONSIBILITIES: AiResponsibilities = {
+  answer_questions: true,
+  schedule_appointments: true,
+  reschedule_appointments: true,
+  cancel_appointments: true,
+  collect_customer_info: true,
+  escalate_to_human: true,
+};
 
 const defaultDraft: OnboardingDraft = {
   businessId: null,
@@ -61,9 +61,9 @@ const defaultDraft: OnboardingDraft = {
   phone: "",
   website: "",
   description: "",
-  hours: WEEKDAYS.map((weekday) => ({
+  hours: WEEKDAYS.map((weekday, i) => ({
     weekday,
-    isOpen: weekday !== "sunday" && weekday !== "saturday",
+    isOpen: i < 6,
     openTime: "09:00",
     closeTime: "17:00",
   })),
@@ -91,12 +91,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setDraft((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  return (
-    <OnboardingContext.Provider value={{ draft, update }}>{children}</OnboardingContext.Provider>
-  );
+  return <OnboardingContext.Provider value={{ draft, update }}>{children}</OnboardingContext.Provider>;
 }
 
-export function useOnboarding() {
+export function useOnboarding(): OnboardingContextValue {
   const ctx = React.useContext(OnboardingContext);
   if (!ctx) throw new Error("useOnboarding must be used within OnboardingProvider");
   return ctx;

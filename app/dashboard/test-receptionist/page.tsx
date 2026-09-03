@@ -1,19 +1,15 @@
-import { getAiReceptionist } from "@/lib/data/ai-receptionist";
+import { getBusiness } from "@/lib/data/business";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TestReceptionistClient } from "@/components/dashboard/test-receptionist-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function TestReceptionistPage() {
-  const ai = await getAiReceptionist();
-
+  const business = await getBusiness();
   return (
     <div>
-      <PageHeader
-        title="Test Receptionist"
-        description={`Talk to ${ai.name} the same way a real customer would — this uses the real AI, real calendar, and real data.`}
-      />
-      <TestReceptionistClient employeeName={ai.name} />
+      <PageHeader title="Test Receptionist" description={`Preview exactly how ${business.name}'s AI will sound to real callers.`} />
+      <TestReceptionistClient />
     </div>
   );
 }

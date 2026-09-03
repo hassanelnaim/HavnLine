@@ -1,16 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendSms as twilioSendSms, isTwilioConfigured } from "@/lib/integrations/telephony/twilioProvider";
 
-/**
- * integrations/sms/index.ts
- *
- * Thin wrapper the AI tools call — resolves the business's own
- * sub-account credentials and assigned number, then delegates to the
- * Twilio provider so the message sends (and bills) under that
- * specific business's sub-account, not the shared master account.
- * Falls back to a console-logged stub if Twilio isn't configured.
- */
-
 export interface SmsClientLike {
   send(businessId: string, to: string, message: string): Promise<{ sent: boolean; reason?: string }>;
 }

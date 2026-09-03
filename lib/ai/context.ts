@@ -1,29 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
-  DbAiReceptionist,
-  DbAiVoiceConfig,
-  DbBusiness,
-  DbBusinessHours,
-  DbKnowledgeItem,
-  DbPromotion,
-  DbService,
+  DbAiReceptionist, DbAiVoiceConfig, DbBusiness, DbBusinessHours,
+  DbKnowledgeItem, DbPromotion, DbService,
 } from "@/lib/database/types";
-
-/**
- * context.ts
- *
- * The ONE place that assembles everything Claude needs to know about a
- * business. Every AI entry point (Test Receptionist, phone calls) calls
- * loadBusinessContext(businessId) and nothing else — there is no
- * hardcoded business data anywhere in the AI layer.
- *
- * Uses the admin client because this runs in webhook/server contexts
- * (an inbound Twilio call, for instance) where there is no browser
- * session cookie to authenticate with — the businessId itself is
- * resolved from a trusted source before this is called (the phone
- * number that was dialed, or the logged-in owner's own business for
- * Test Receptionist), never taken from unverified client input.
- */
 
 export interface BusinessContext {
   business: DbBusiness;
@@ -51,9 +30,6 @@ export async function loadBusinessContext(businessId: string): Promise<BusinessC
   if (businessRes.error || !businessRes.data) return null;
   if (aiRes.error || !aiRes.data) return null;
 
-  // Filter to promotions actually active today, computed in the
-  // business's own timezone — not just "is_active = true" (which the
-  // owner can also use to pause one early without deleting it).
   const todayInBusinessTz = new Intl.DateTimeFormat("en-CA", {
     timeZone: businessRes.data.timezone,
     year: "numeric",
@@ -76,25 +52,11 @@ export async function loadBusinessContext(businessId: string): Promise<BusinessC
   };
 }
 
-/**
- * Resolves which business a Twilio call belongs to, based on the phone
- * number that was dialed (the GetMade number assigned to that
- * business). This is the trusted resolution path for inbound calls —
- * never trust a business_id sent in a request body for anything
- * call-related.
- */
 export interface ResolvedBusiness {
   businessId: string;
   subAccountAuthToken: string | null;
 }
 
-/**
- * Resolves both which business a Twilio call belongs to, AND that
- * business's own Twilio sub-account auth token — needed because
- * Twilio signs webhook requests using the auth token of whichever
- * account actually owns the number that was called (the sub-account),
- * not the shared master account.
- */
 export async function resolveBusinessFromPhoneNumber(dialedNumber: string): Promise<ResolvedBusiness | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -119,11 +81,6 @@ export async function resolveBusinessFromPhoneNumber(dialedNumber: string): Prom
   };
 }
 
-/**
- * Fetches a business's Twilio sub-account auth token, given its
- * business_id directly (used by webhook routes that already resolved
- * business_id from a call record, rather than from the dialed number).
- */
 export async function getBusinessTwilioAuthToken(businessId: string): Promise<string | null> {
   const admin = createAdminClient();
   const { data } = await admin

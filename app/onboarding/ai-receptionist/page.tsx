@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "@/lib/onboarding/context";
 import type { AiResponsibilities } from "@/lib/database/types";
@@ -20,18 +19,11 @@ export default function AiReceptionistStep() {
   const { draft, update } = useOnboarding();
 
   function toggleResponsibility(key: keyof AiResponsibilities) {
-    update({
-      responsibilities: { ...draft.responsibilities, [key]: !draft.responsibilities[key] },
-    });
+    update({ responsibilities: { ...draft.responsibilities, [key]: !draft.responsibilities[key] } });
   }
 
   return (
-    <StepShell
-      title="What should your receptionist handle?"
-      description="Pick what it's allowed to do. You can name it, pick its voice and tone, and fine-tune everything else afterward in your dashboard."
-      backHref="/onboarding/services"
-      onContinue={() => router.push("/onboarding/voice")}
-    >
+    <StepShell title="What should your receptionist handle?" description="Pick what it's allowed to do. You can name it, pick its voice and tone, and fine-tune everything else afterward in your dashboard." backHref="/onboarding/services" onContinue={() => router.push("/onboarding/voice")}>
       <div className="divide-y divide-border-soft rounded-2xl border border-border bg-card">
         {RESPONSIBILITY_ITEMS.map((item) => (
           <div key={item.key} className="flex items-center justify-between gap-4 px-4 py-3.5">
@@ -39,10 +31,7 @@ export default function AiReceptionistStep() {
               <div className="text-[13.5px] font-medium text-text">{item.label}</div>
               <div className="text-[11.5px] text-text-muted">{item.hint}</div>
             </div>
-            <Switch
-              checked={draft.responsibilities[item.key]}
-              onCheckedChange={() => toggleResponsibility(item.key)}
-            />
+            <Switch checked={draft.responsibilities[item.key]} onCheckedChange={() => toggleResponsibility(item.key)} />
           </div>
         ))}
       </div>

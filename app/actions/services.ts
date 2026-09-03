@@ -8,9 +8,7 @@ import type { ActionResult } from "./business";
 
 async function requireBusinessId(): Promise<string> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated.");
 
   const businessId = await getCurrentBusinessId();
@@ -18,12 +16,7 @@ async function requireBusinessId(): Promise<string> {
   return businessId;
 }
 
-export async function addServiceAction(input: {
-  name: string;
-  description: string;
-  priceDollars: string;
-  durationMinutes: number;
-}): Promise<ActionResult> {
+export async function addServiceAction(input: { name: string; description: string; priceDollars: string; durationMinutes: number }): Promise<ActionResult> {
   let businessId: string;
   try {
     businessId = await requireBusinessId();
@@ -46,34 +39,6 @@ export async function addServiceAction(input: {
   if (error) return { success: false, error: error.message };
   revalidatePath("/dashboard/knowledge");
   revalidatePath("/dashboard/ai-employee");
-  return { success: true };
-}
-
-export async function updateServiceAction(
-  id: string,
-  input: { name: string; description: string; priceDollars: string; durationMinutes: number }
-): Promise<ActionResult> {
-  let businessId: string;
-  try {
-    businessId = await requireBusinessId();
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
-  }
-
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("services")
-    .update({
-      name: input.name,
-      description: input.description || null,
-      price_cents: Math.round((parseFloat(input.priceDollars) || 0) * 100),
-      duration_minutes: input.durationMinutes || 30,
-    })
-    .eq("id", id)
-    .eq("business_id", businessId);
-
-  if (error) return { success: false, error: error.message };
-  revalidatePath("/dashboard/knowledge");
   return { success: true };
 }
 

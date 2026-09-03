@@ -1,47 +1,38 @@
-import type { DbCall, DbCallMessage } from "@/lib/database/types";
-import { mockCallMessages, mockCalls } from "@/lib/mock/data";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentBusinessId } from "@/lib/supabase/business";
+import { mockCalls, mockCallMessages } from "@/lib/mock/data";
+import type { DbCall, DbCallMessage } from "@/lib/database/types";
 
 export async function getCalls(): Promise<DbCall[]> {
+  if (!isSupabaseConfigured()) return mockCalls;
   const businessId = await getCurrentBusinessId();
-  if (!businessId) {
-    return [...mockCalls].sort(
-      (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-    );
-  }
+  if (!businessId) return mockCalls;
 
-  // Real business: return real rows even if empty — a brand-new business
-  // genuinely has no calls yet, and showing demo data here would be wrong.
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("calls")
-    .select("*")
-    .eq("business_id", businessId)
-    .order("started_at", { ascending: false });
-
-  return error || !data ? [] : data;
+  const { data } = await supabase.from("calls").select("*").eq("business_id", businessId).order("started_at", { ascending: false });
+  return data || mockCalls;
 }
 
-export async function getCallById(id: string): Promise<DbCall | null> {
-  const businessId = await getCurrentBusinessId();
-  if (!businessId) return mockCalls.find((c) => c.id === id) ?? null;
-
+export async function getCall(callId: string): Promise<DbCall | null> {
+  if (!isSupabaseConfigured()) return mockCalls.find((c) => c.id === callId) || null;
   const supabase = createClient();
-  const { data, error } = await supabase.from("calls").select("*").eq("id", id).single();
-  return error || !data ? null : data;
+  const { data } = await supabase.from("calls").select("*").eq("id", callId).maybeSingle();
+  return data || null;
 }
 
 export async function getCallMessages(callId: string): Promise<DbCallMessage[]> {
-  const businessId = await getCurrentBusinessId();
-  if (!businessId) return mockCallMessages[callId] ?? [];
-
+  if (!isSupabaseConfigured()) return mockCallMessages.filter((m) => m.call_id === callId);
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("call_messages")
-    .select("*")
-    .eq("call_id", callId)
-    .order("created_at", { ascending: true });
+  const { data } = await supabase.from("call_messages").select("*").eq("call_id", callId).order("created_at");
+  return data || [];
+}
 
-  return error || !data ? [] : data;
+/**
+ * All calls that were escalated to a human, most recent first — powers
+ * the dedicated Escalations page (and the clickable "Human Escalations"
+ * stat on the Overview page that links there).
+ */
+export async function getEscalatedCalls(): Promise<DbCall[]> {
+  const calls = await getCalls();
+  return calls.filter((c) => c.outcome === "escalated").sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
 }

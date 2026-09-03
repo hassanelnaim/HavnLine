@@ -1,35 +1,16 @@
 import type { VoiceId } from "@/lib/database/types";
 
-/**
- * integrations/telephony/elevenlabsProvider.ts
- *
- * Two things live here:
- *  - The 4 built-in preset voices (Alex/Sarah/James/Emma), mapped to
- *    sensible default ElevenLabs voices.
- *  - listVoices(), which fetches the business owner's OWN real
- *    ElevenLabs voice library, so they can pick any voice they have
- *    access to — not just the 4 presets. When a business picks a real
- *    voice this way, it's stored as voice_id: "custom" with the real
- *    ElevenLabs voice id in provider_voice_ref (see
- *    lib/database/types.ts), which takes priority over the preset map.
- */
-
 const DEFAULT_VOICE_MAP: Record<Exclude<VoiceId, "custom">, string> = {
-  alex_professional: process.env.ELEVENLABS_VOICE_ALEX || "pNInz6obpgDQGcFmaJgB", // "Adam"
-  sarah_warm: process.env.ELEVENLABS_VOICE_SARAH || "21m00Tcm4TlvDq8ikWAM", // "Rachel"
-  james_calm: process.env.ELEVENLABS_VOICE_JAMES || "VR6AewLTigWG4xSOukaG", // "Arnold"
-  emma_friendly: process.env.ELEVENLABS_VOICE_EMMA || "EXAVITQu4vr4xnSDxMaL", // "Bella"
+  alex_professional: process.env.ELEVENLABS_VOICE_ALEX || "pNInz6obpgDQGcFmaJgB",
+  sarah_warm: process.env.ELEVENLABS_VOICE_SARAH || "21m00Tcm4TlvDq8ikWAM",
+  james_calm: process.env.ELEVENLABS_VOICE_JAMES || "VR6AewLTigWG4xSOukaG",
+  emma_friendly: process.env.ELEVENLABS_VOICE_EMMA || "EXAVITQu4vr4xnSDxMaL",
 };
 
 export function isElevenLabsConfigured(): boolean {
   return Boolean(process.env.ELEVENLABS_API_KEY);
 }
 
-/**
- * Resolves the real ElevenLabs voice id to use for a given business's
- * voice config. If they picked a specific real voice (voice_id ===
- * "custom"), that always wins. Otherwise falls back to the preset map.
- */
 export function resolveElevenLabsVoiceId(
   voiceId: VoiceId | null | undefined,
   providerVoiceRef?: string | null
@@ -78,12 +59,6 @@ export interface ElevenLabsVoice {
   description: string | null;
 }
 
-/**
- * Fetches every voice the connected ElevenLabs account has access to
- * — their own cloned/added voices plus ElevenLabs' shared library
- * voices. This is what powers the "browse voices" picker in AI
- * Employee settings.
- */
 export async function listVoices(): Promise<ElevenLabsVoice[]> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {

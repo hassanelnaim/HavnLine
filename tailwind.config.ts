@@ -10,23 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // HavnLine brand palette
-        ink: {
-          DEFAULT: "#0B1220",
-          soft: "#131C30",
-          line: "#25324A",
-        },
+        ink: { DEFAULT: "#0B1220", soft: "#131C30", line: "#25324A" },
         paper: "#F6F7FA",
         card: "#FFFFFF",
-        border: {
-          DEFAULT: "#E5E7EB",
-          soft: "#EEF0F3",
-        },
-        text: {
-          DEFAULT: "#0B1220",
-          muted: "#5B6472",
-          faint: "#9AA3B2",
-        },
+        border: { DEFAULT: "#E5E7EB", soft: "#EEF0F3" },
+        text: { DEFAULT: "#0B1220", muted: "#5B6472", faint: "#9AA3B2" },
         brand: {
           DEFAULT: "#2563EB",
           dark: "#1D4ED8",
@@ -34,53 +22,16 @@ const config: Config = {
           soft: "#E9F0FE",
           50: "#F3F7FF",
         },
-        success: {
-          DEFAULT: "#16A34A",
-          soft: "#E5F6EA",
-        },
-        danger: {
-          DEFAULT: "#DC2626",
-          soft: "#FBE9E8",
-        },
-        info: {
-          DEFAULT: "#60A5FA",
-          soft: "#EAF2FE",
-        },
+        success: { DEFAULT: "#16A34A", soft: "#E5F6EA" },
+        danger: { DEFAULT: "#DC2626", soft: "#FBE9E8" },
+        info: { DEFAULT: "#60A5FA", soft: "#EAF2FE" },
       },
       fontFamily: {
-        display: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "'Segoe UI'",
-          "Roboto",
-          "Helvetica",
-          "Arial",
-          "sans-serif",
-        ],
-        sans: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "'Segoe UI'",
-          "Roboto",
-          "Helvetica",
-          "Arial",
-          "sans-serif",
-        ],
-        mono: [
-          "'IBM Plex Mono'",
-          "'SFMono-Regular'",
-          "Consolas",
-          "'Liberation Mono'",
-          "Menlo",
-          "monospace",
-        ],
+        display: ["Inter", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "'SFMono-Regular'", "Consolas", "'Liberation Mono'", "Menlo", "monospace"],
       },
-      borderRadius: {
-        xl: "0.85rem",
-        "2xl": "1.1rem",
-      },
+      borderRadius: { xl: "0.85rem", "2xl": "1.1rem" },
       boxShadow: {
         card: "0 1px 2px rgba(11, 18, 32, 0.04), 0 1px 12px rgba(11, 18, 32, 0.04)",
         popover: "0 8px 30px rgba(11, 18, 32, 0.14)",
