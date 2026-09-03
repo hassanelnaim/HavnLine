@@ -38,21 +38,7 @@ export async function fetchWebsiteText(url: string): Promise<string> {
   try {
     response = await fetch(normalizedUrl, {
       signal: controller.signal,
-      headers: {
-        // A real browser's user-agent, not something that identifies
-        // itself as a bot. Many sites (Cloudflare, Sucuri, and similar
-        // protection layers) automatically 403 any request whose
-        // User-Agent contains "bot" — which the original
-        // "GetMadeBot/1.0" string did, causing exactly that error for
-        // a lot of real, legitimate websites. This is a one-off fetch
-        // of a page the business owner themselves asked us to read,
-        // not bulk scraping, so presenting as a normal browser request
-        // is reasonable here.
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; GetMadeBot/1.0)" },
     });
   } finally {
     clearTimeout(timeout);

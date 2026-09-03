@@ -43,20 +43,17 @@ export function escapeXml(s: string) {
 /**
  * Builds the TwiML markup for a single spoken line. If ElevenLabs is
  * configured, this uses <Play> pointing at /api/tts, which generates
- * real premium-voice audio on the fly. If not configured — OR if
- * forceInstant is true — it uses Twilio's own instant built-in <Say>
- * voice instead, with zero generation delay.
+ * real premium-voice audio on the fly — either the business's own
+ * hand-picked ElevenLabs voice (voice.providerVoiceRef) or one of the
+ * 4 preset defaults. If ElevenLabs isn't configured, it falls back to
+ * Twilio's own <Say> with the mapped Amazon Polly voice, so the app
+ * keeps working exactly as before with zero extra setup.
  *
- * forceInstant exists specifically for short filler acknowledgments
- * ("one sec", "let me check that") where even a few seconds of
- * ElevenLabs generation time defeats the entire purpose of having a
- * quick acknowledgment at all. This deliberately reuses the exact same
- * <Say> code path that already runs whenever ElevenLabs isn't
- * configured — not new, separate logic — specifically to avoid
- * introducing an untested branch into a webhook this critical.
+ * Every place that speaks to a caller should go through this function
+ * rather than building <Say>/<Play> tags directly.
  */
-export function sayLine(voice: VoiceSelection, text: string, forceInstant: boolean = false): string {
-  if (isElevenLabsConfigured() && !forceInstant) {
+export function sayLine(voice: VoiceSelection, text: string): string {
+  if (isElevenLabsConfigured()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;

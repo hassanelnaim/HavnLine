@@ -18,12 +18,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 // A short, natural-sounding acknowledgment so the caller hears
 // something immediately instead of dead air while the AI genuinely
 // needs a few seconds (checking the calendar, looking up a customer,
-// etc.). Always spoken with forceInstant=true — Twilio's own built-in
-// voice, zero generation delay — even when ElevenLabs is configured
-// for the real answer that follows. Generating premium audio takes a
-// couple of real seconds even for a short phrase, which was making
-// this "quick" acknowledgment itself arrive late, defeating the whole
-// point of having one.
+// etc.). Only used when this turn looks likely to need one — either
+// because the last AI response used a tool, or because what the
+// caller just said sounds like it will (e.g. "I'd like to book an
+// appointment") — so it doesn't play before every single response,
+// only the ones actually likely to take a moment.
 const FILLERS = [
   "Sure, let me check that for you.",
   "Great, one moment.",
@@ -38,10 +37,12 @@ const FILLERS = [
  * Fires the instant Twilio finishes transcribing the caller's speech.
  * Decides, per turn, whether the upcoming AI response is likely to
  * take a moment — based on whether the previous turn used a tool, OR
- * whether the caller's own words sound like they'll need one — and
- * either answers immediately (fast path, most casual turns) or plays
- * a brief, instant acknowledgment first and redirects to /process for
- * the real work.
+ * whether the caller's own words sound like they'll need one (this
+ * second signal specifically catches the FIRST booking-shaped request
+ * in a conversation, which the previous-turn signal alone would miss)
+ * — and either answers immediately (fast path, most casual turns) or
+ * plays a brief acknowledgment first and redirects to /process for the
+ * real work.
  */
 export async function POST(request: NextRequest) {
   const callId = request.nextUrl.searchParams.get("callId");
@@ -96,14 +97,12 @@ export async function POST(request: NextRequest) {
     return buildTurnResponseTwiml(call.business_id, callId, result, voice);
   }
 
-  // Slow path: acknowledge INSTANTLY (forceInstant=true — Twilio's own
-  // voice, zero generation delay), then do the real work in /process,
-  // which speaks the real answer in the business's actual chosen voice.
+  // Slow path: acknowledge immediately, then do the real work in /process.
   const filler = FILLERS[Math.floor(Math.random() * FILLERS.length)];
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  ${sayLine(voice, filler, true)}
+  ${sayLine(voice, filler)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }

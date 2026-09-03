@@ -46,19 +46,25 @@ export default function PrivacyPage() {
             <li><strong>Payment information:</strong> handled entirely by Stripe — we never see or store your full card details.</li>
           </ul>
 
-          <h2 className="font-display text-[18px] font-semibold text-ink">2. How end-users consent to SMS messages</h2>
+          <h2 className="font-display text-[18px] font-semibold text-ink">2. SMS messaging &amp; consent</h2>
           <p>
             Customers consent to receive a text message verbally, over the phone, at the moment they provide
             their phone number to book an appointment with a business's AI receptionist. No phone numbers are
             collected, purchased, or imported from any other source. Message frequency is one confirmation per
             booked appointment. Customers can reply STOP at any time to opt out, or HELP for assistance.
           </p>
+          <p className="rounded-lg border border-border bg-paper px-4 py-3 font-medium">
+            No mobile information — including text messaging originator opt-in data and consent — will be
+            shared with any third parties or affiliates for marketing or promotional purposes. This information
+            is used solely to deliver the appointment confirmation the customer consented to and for no other
+            purpose.
+          </p>
 
           <h2 className="font-display text-[18px] font-semibold text-ink">3. How we use this information</h2>
           <p>
             We use it to operate the Service — answering calls, generating AI responses, booking appointments,
             processing payments, and showing you your own business's data in the dashboard. We do not sell your
-            data, and we do not use collected phone numbers or messaging data for marketing purposes.
+            data.
           </p>
 
           <h2 className="font-display text-[18px] font-semibold text-ink">4. Who we share it with</h2>
@@ -67,7 +73,8 @@ export default function PrivacyPage() {
             SMS), Anthropic (processes conversation text to generate AI responses), ElevenLabs (converts AI
             responses to speech), Google (only if you connect Google Calendar), Stripe (payment processing), and
             Supabase (secure database hosting). Each of these providers has its own privacy practices governing
-            how they handle data.
+            how they handle data. As stated above, mobile opt-in and consent data specifically is never shared
+            with any party for marketing or promotional purposes.
           </p>
 
           <h2 className="font-display text-[18px] font-semibold text-ink">5. Data isolation between businesses</h2>
