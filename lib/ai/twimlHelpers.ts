@@ -17,18 +17,6 @@ export function twiml(body: string) {
   });
 }
 
-/**
- * Reconstructs the EXACT public URL Twilio actually requested, built
- * directly from the incoming request's own headers rather than
- * `request.nextUrl` or an env var. This matters specifically for
- * Twilio signature validation: Twilio computes its signature based on
- * the literal URL it called, and behind Vercel's proxy layer (or right
- * after switching to a custom domain), Next.js's own URL parsing can
- * sometimes report something subtly different from what the client
- * actually addressed. Reading straight from the `host` and
- * `x-forwarded-proto` headers is the most reliable way to match
- * exactly what Twilio signed against.
- */
 export function getRequestUrl(request: Request): string {
   const url = new URL(request.url);
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || url.host;
@@ -40,18 +28,6 @@ export function escapeXml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/**
- * Builds the TwiML markup for a single spoken line. If ElevenLabs is
- * configured, this uses <Play> pointing at /api/tts, which generates
- * real premium-voice audio on the fly — either the business's own
- * hand-picked ElevenLabs voice (voice.providerVoiceRef) or one of the
- * 4 preset defaults. If ElevenLabs isn't configured, it falls back to
- * Twilio's own <Say> with the mapped Amazon Polly voice, so the app
- * keeps working exactly as before with zero extra setup.
- *
- * Every place that speaks to a caller should go through this function
- * rather than building <Say>/<Play> tags directly.
- */
 export function sayLine(voice: VoiceSelection, text: string): string {
   if (isElevenLabsConfigured()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
@@ -63,12 +39,6 @@ export function sayLine(voice: VoiceSelection, text: string): string {
   return `<Say voice="${twilioVoice}">${escapeXml(text)}</Say>`;
 }
 
-/**
- * Builds the TwiML for a completed AI turn — either a transfer to a
- * real human, or the spoken reply plus another <Gather> to keep
- * listening. Shared by both the "answered immediately" fast path and
- * the "answered after a filler" path so they behave identically.
- */
 export async function buildTurnResponseTwiml(
   businessId: string,
   callId: string,
@@ -108,15 +78,6 @@ export async function buildTurnResponseTwiml(
 </Response>`);
 }
 
-/**
- * Whether the AI's most recent turn on this call used a tool. This is
- * the real signal for "the next turn is likely to take a few seconds
- * too" — booking/availability/lookup flows tend to have several
- * tool-using turns in a row, while small talk and simple follow-ups
- * ("thanks", "okay") don't. Used to decide whether to play the "one
- * moment" filler, instead of playing it before every single response
- * regardless of whether it's actually needed.
- */
 export async function lastTurnUsedTool(callId: string): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -131,15 +92,6 @@ export async function lastTurnUsedTool(callId: string): Promise<boolean> {
   return Boolean(data?.tool_call);
 }
 
-/**
- * Catches the specific gap lastTurnUsedTool() alone misses: the FIRST
- * message in a conversation that will need a tool (e.g. "I'd like to
- * book an appointment" right after the greeting) has no previous
- * tool-using turn to predict from, so it was falling through to the
- * fast/no-filler path and hitting a real multi-second silent gap.
- * Checking the customer's own words for booking/lookup-shaped language
- * catches this directly, on top of the previous-turn signal.
- */
 const LIKELY_SLOW_KEYWORDS = [
   "book", "appointment", "schedule", "reschedule", "cancel",
   "available", "availability", "price", "cost", "how much",
