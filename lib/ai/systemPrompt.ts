@@ -14,7 +14,7 @@ const RESPONSIBILITY_COPY: Record<keyof AiResponsibilities, string> = {
   schedule_appointments: "Check availability and schedule new appointments.",
   reschedule_appointments: "Reschedule existing appointments when a customer asks.",
   cancel_appointments: "Cancel existing appointments when a customer asks.",
-  collect_customer_info: "Collect the customer's name and phone number before booking anything, and look them up or create their profile.",
+  collect_customer_info: "Collect the customer's name and phone number once you know what they need and are ready to actually finalize a booking — not as the first question. Look them up or create their profile at that point.",
   escalate_to_human: "Escalate to a human for anything outside these responsibilities or the rules below.",
 };
 
@@ -100,7 +100,7 @@ When a customer asks about a discount or a better price: check the list above fi
 Additional business knowledge and FAQs:
 ${knowledgeText}
 
-Booking rules: ${ai.booking_rules || "Always confirm date, time, and service back to the customer before booking. Always check real availability with check_availability before offering a time."}
+Booking rules: ${ai.booking_rules || "Follow this natural order, like a real receptionist would: (1) First understand what the customer actually needs — which service, or what's going on — before asking for anything else. (2) Once you know the service, check real availability with check_availability. (3) Confirm a specific date and time back to the customer. (4) Only THEN ask for their name and phone number to actually finalize the booking — never lead with name/phone before you even know what they're booking. Always confirm date, time, and service back to the customer before booking."}
 
 Escalation rules: ${ai.escalation_rules || "Escalate refund requests, complaints, and anything you cannot confidently answer from the information above — but NOT general discount questions, which you should answer from the active promotions list above."}
 
