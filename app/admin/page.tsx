@@ -1,4 +1,5 @@
-import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle, MoreVertical } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate } from "@/lib/format";
 
@@ -85,6 +86,7 @@ export default async function PlatformAdminPage() {
                 <th className="py-2 pr-4">Phone</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Joined</th>
+                <th className="py-2 pr-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -94,6 +96,11 @@ export default async function PlatformAdminPage() {
                   <td className="py-3 pr-4 font-mono text-text-muted">{b.phone || "—"}</td>
                   <td className="py-3 pr-4"><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[b.subscription_status] || STATUS_STYLES.none}`}>{b.subscription_status}</span></td>
                   <td className="py-3 pr-4 text-text-muted">{formatDate(b.created_at)}</td>
+                  <td className="py-3 pr-4 text-right">
+                    <Link href={`/admin/businesses/${b.id}`} className="inline-flex text-text-faint hover:text-text" aria-label="Inspect business">
+                      <MoreVertical className="h-4 w-4" />
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { buildSystemPrompt } from "./systemPrompt";
 import { TOOL_DEFINITIONS, TOOL_HANDLERS, type ToolContext } from "./tools";
 import type { BusinessContext } from "./context";
+import { logAnthropicUsage } from "@/lib/usage/tracking";
 
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 const PHONE_MODEL = process.env.ANTHROPIC_PHONE_MODEL || "claude-haiku-4-5-20251001";
@@ -52,6 +53,11 @@ export async function runTurn(
 
     const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text");
     const toolUseBlocks = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+
+    // Real usage logging — attributed to this specific business, so
+    // per-business AI cost is actually knowable, since Anthropic's own
+    // billing is one shared total across every HavnLine business.
+    logAnthropicUsage(toolCtx.businessId, model, response.usage.input_tokens, response.usage.output_tokens);
 
     finalReply = textBlocks.map((b) => b.text).join(" ").trim();
 

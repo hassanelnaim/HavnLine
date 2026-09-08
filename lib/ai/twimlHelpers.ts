@@ -34,10 +34,11 @@ export function escapeXml(s: string) {
  * audio. If not configured, falls back to Twilio's own built-in
  * <Say> voice.
  */
-export function sayLine(voice: VoiceSelection, text: string): string {
+export function sayLine(voice: VoiceSelection, text: string, businessId?: string): string {
   if (isElevenLabsConfigured()) {
     const params = new URLSearchParams({ text, voiceId: voice.voiceId || "alex_professional" });
     if (voice.providerVoiceRef) params.set("providerVoiceRef", voice.providerVoiceRef);
+    if (businessId) params.set("businessId", businessId);
     const ttsUrl = `${SITE_URL}/api/tts?${params.toString()}`;
     return `<Play>${escapeXml(ttsUrl)}</Play>`;
   }
@@ -65,7 +66,7 @@ export async function buildTurnResponseTwiml(
       const callerIdAttr = getMadeNumber ? ` callerId="${escapeXml(getMadeNumber)}"` : "";
       const dialStatusAction = `${SITE_URL}/api/webhooks/twilio/dial-status?callId=${callId}`;
       return twiml(`<Response>
-  ${sayLine(voice, "One moment while I connect you.")}
+  ${sayLine(voice, "One moment while I connect you.", businessId)}
   <Dial${callerIdAttr} timeout="20" action="${escapeXml(dialStatusAction)}" method="POST">${escapeXml(business.phone)}</Dial>
 </Response>`);
     }
@@ -75,9 +76,9 @@ export async function buildTurnResponseTwiml(
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
-    ${sayLine(voice, result.reply)}
+    ${sayLine(voice, result.reply, businessId)}
   </Gather>
-  ${sayLine(voice, "Thanks for calling. Goodbye.")}
+  ${sayLine(voice, "Thanks for calling. Goodbye.", businessId)}
   <Hangup/>
 </Response>`);
 }

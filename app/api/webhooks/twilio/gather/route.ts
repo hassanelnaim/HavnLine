@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
   if (!speechResult) {
     return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
-    ${sayLine(voice, "Sorry, could you say that again?")}
+    ${sayLine(voice, "Sorry, could you say that again?", call.business_id)}
   </Gather>
-  ${sayLine(voice, "I'm not able to hear you — please call back. Goodbye.")}
+  ${sayLine(voice, "I'm not able to hear you — please call back. Goodbye.", call.business_id)}
   <Hangup/>
 </Response>`);
   }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const processUrl = `${SITE_URL}/api/webhooks/twilio/process?callId=${callId}&speech=${encodeURIComponent(speechResult)}`;
 
   return twiml(`<Response>
-  ${sayLine(voice, filler)}
+  ${sayLine(voice, filler, call.business_id)}
   <Redirect method="POST">${escapeXml(processUrl)}</Redirect>
 </Response>`);
 }

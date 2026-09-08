@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
 
   return twiml(`<Response>
   <Gather input="speech" action="${escapeXml(gatherAction)}" method="POST" speechTimeout="auto" speechModel="phone_call" timeout="15">
-    ${sayLine(voice, greeting)}
+    ${sayLine(voice, greeting, businessId)}
   </Gather>
-  ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.")}
+  ${sayLine(voice, "Sorry, I didn't catch that. Please call back. Goodbye.", businessId)}
   <Hangup/>
 </Response>`);
 }
