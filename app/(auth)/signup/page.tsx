@@ -29,15 +29,17 @@ export default function SignupPage({ searchParams }: { searchParams: { error?: s
           <Label htmlFor="password">Password</Label>
           <Input id="password" name="password" type="password" required minLength={8} className="mt-1.5" />
         </div>
+        <div className="flex items-start gap-2.5">
+          <input id="acceptTerms" name="acceptTerms" type="checkbox" required className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-2 focus:ring-brand/30" />
+          <label htmlFor="acceptTerms" className="text-[12.5px] leading-relaxed text-text-muted">
+            I agree to HavnLine's{" "}
+            <Link href="/terms" target="_blank" className="font-medium text-brand hover:underline">Terms</Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="font-medium text-brand hover:underline">Privacy Policy</Link>.
+          </label>
+        </div>
         <Button type="submit" variant="brand" className="w-full">Create account</Button>
       </form>
-
-      <p className="mt-4 text-center text-[11.5px] text-text-faint">
-        By creating an account, you agree to our{" "}
-        <Link href="/terms" className="underline hover:text-text-muted">Terms</Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline hover:text-text-muted">Privacy Policy</Link>.
-      </p>
 
       <p className="mt-5 text-center text-[13px] text-text-muted">
         Already have an account?{" "}

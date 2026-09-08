@@ -7,6 +7,15 @@ export async function signUpAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const fullName = formData.get("fullName") as string;
+  const acceptedTerms = formData.get("acceptTerms") === "on";
+
+  // Real server-side enforcement, not just the browser's checkbox —
+  // the client-side "required" attribute is a UX nicety, but a direct
+  // request could bypass it entirely. Terms acceptance is exactly the
+  // kind of thing that shouldn't rely on trusting the client alone.
+  if (!acceptedTerms) {
+    redirect(`/signup?error=${encodeURIComponent("You must accept the Terms and Privacy Policy to create an account.")}`);
+  }
 
   const supabase = createClient();
 
