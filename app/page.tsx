@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight, Phone, PhoneMissed, PhoneCall, MessageSquareText, BookOpen, ShieldCheck, Voicemail,
   Mic2, CalendarClock, Check, Globe, Wrench, Scissors, Stethoscope, Scale, Hammer,
-  UtensilsCrossed, HeartPulse, Star, Activity,
+  UtensilsCrossed, HeartPulse, Star, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
@@ -21,13 +21,13 @@ const FEATURES = [
 
 const INDUSTRIES = [
   { icon: Wrench, label: "Auto Repair" },
-  { icon: Scissors, label: "Salon & Spa" },
+  { icon: Scissors, label: "Salon" },
   { icon: HeartPulse, label: "Dental Practice" },
   { icon: Stethoscope, label: "Medical Practice" },
   { icon: Scale, label: "Law Firm" },
   { icon: Hammer, label: "Home Services" },
   { icon: UtensilsCrossed, label: "Restaurant" },
-  { icon: Activity, label: "Chiropractor" },
+  { icon: Sparkles, label: "Spa" },
 ];
 
 const STEPS = [
