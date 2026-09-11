@@ -55,6 +55,28 @@ async function book_appointment(
 ): Promise<ToolResult> {
   const admin = createAdminClient();
 
+  // Defense-in-depth duplicate check — a second, independent layer on
+  // top of handleTurn()'s retry detection. If a matching appointment
+  // (same business, phone, service, date, and time) was already
+  // created in roughly the last few minutes, treat this as the same
+  // booking rather than creating a second one.
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: possibleDuplicate } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("business_id", ctx.businessId)
+    .eq("phone", input.phone)
+    .eq("service_name", input.service_name)
+    .eq("date", input.date)
+    .eq("time", input.time)
+    .neq("status", "cancelled")
+    .gte("created_at", fiveMinutesAgo)
+    .maybeSingle();
+
+  if (possibleDuplicate) {
+    return { success: true, appointment_id: possibleDuplicate.id };
+  }
+
   const { data: existingCustomer } = await admin.from("customers").select("id").eq("business_id", ctx.businessId).eq("phone", input.phone).maybeSingle();
   let customerId = existingCustomer?.id;
   if (!customerId) {

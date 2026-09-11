@@ -58,6 +58,55 @@ export async function handleTurn(
 ): Promise<HandleTurnResult> {
   const admin = createAdminClient();
 
+  // Real retry protection. Twilio guarantees "at-least-once" webhook
+  // delivery — if our response takes too long (which genuinely
+  // happens on booking turns: availability check, booking, calendar
+  // event, SMS, all in sequence), Twilio assumes the request failed
+  // and retries it, sending the exact same speech text again. Without
+  // this check, that retry would silently reprocess the whole turn —
+  // creating a duplicate appointment, a duplicate confirmation text,
+  // and double AI cost. This is the actual root cause of appointments
+  // "repeating" on the Appointments page.
+  const { data: recentMessages } = await admin
+    .from("call_messages")
+    .select("id, role, content, created_at")
+    .eq("call_id", callId)
+    .order("created_at", { ascending: false })
+    .limit(2);
+
+  const lastCustomerMsg = (recentMessages || []).find((m) => m.role === "customer");
+  if (lastCustomerMsg && lastCustomerMsg.content === userMessage) {
+    const secondsSinceLastIdenticalMessage = (Date.now() - new Date(lastCustomerMsg.created_at).getTime()) / 1000;
+    // 25 seconds comfortably covers Twilio's 15-second hard timeout
+    // plus retry dispatch time, without being long enough to
+    // incorrectly suppress a genuine, separate repeat of the same
+    // phrase later in a real conversation.
+    if (secondsSinceLastIdenticalMessage < 25) {
+      const { data: existingReply } = await admin
+        .from("call_messages")
+        .select("content, tool_call")
+        .eq("call_id", callId)
+        .eq("role", "ai")
+        .gt("created_at", lastCustomerMsg.created_at)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingReply) {
+        // Already fully processed once — return the cached result
+        // instead of doing everything (including side effects like
+        // booking and texting) a second time.
+        return {
+          reply: existingReply.content,
+          toolCalls: existingReply.tool_call ? JSON.parse(existingReply.tool_call).map((name: string) => ({ name, input: {}, result: {} })) : [],
+        };
+      }
+      // No AI reply logged yet — the original request may still be
+      // genuinely in progress. Fall through rather than risk
+      // returning nothing to a real, still-in-flight turn.
+    }
+  }
+
   const context = await loadBusinessContext(businessId);
   if (!context) {
     return { reply: "Sorry, I'm having trouble accessing business information right now.", toolCalls: [] };
