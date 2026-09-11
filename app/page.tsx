@@ -74,19 +74,7 @@ export default async function LandingPage() {
               you&apos;d hope. HavnLine picks up every time, so you never have to choose between running your
               business and answering the phone.
             </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
-                <div className="font-display text-[26px] font-semibold text-white">62%</div>
-                <div className="mt-1 text-[12.5px] text-[#B8C0D0]">of calls to small businesses go unanswered.</div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
-                <div className="font-display text-[26px] font-semibold text-white">85%</div>
-                <div className="mt-1 text-[12.5px] text-[#B8C0D0]">of callers who reach voicemail never call back at all.</div>
-              </div>
-            </div>
-
-            <p className="mt-4 text-[11px] text-[#6B7488]">Sources: 411 Locals (85 businesses, 58 industries); voicemail callback behavior corroborated across Vonage, Invoca, and BIA/Kelsey research.</p>
+            <p className="mt-4 text-[11px] text-[#6B7488]">Source: 411 Locals, 85 businesses across 58 industries.</p>
           </div>
         </section>
 
@@ -147,15 +135,27 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        <section className="bg-ink py-14">
+          <div className="mx-auto max-w-2xl px-6 text-center">
+            <h2 className="font-display text-[32px] font-semibold leading-[1.2] text-white sm:text-[40px]">
+              <span className="text-brand-light">85%</span> of callers who reach voicemail never call back at all.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-[#B8C0D0]">
+              A missed call isn&apos;t a second chance waiting to happen — it&apos;s almost always just gone.
+            </p>
+            <p className="mt-4 text-[11px] text-[#6B7488]">Corroborated across Vonage, Invoca, and BIA/Kelsey research.</p>
+          </div>
+        </section>
+
         <section className="border-y border-border bg-card py-14">
-          <div className="mx-auto max-w-4xl px-6 text-center">
+          <div className="mx-auto max-w-5xl px-6 text-center">
             <p className="text-[11.5px] font-semibold uppercase tracking-wide text-text-faint">Built for real businesses</p>
             <h2 className="mt-2.5 font-display text-[22px] font-semibold text-ink">If you take appointments by phone, this is for you.</h2>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {INDUSTRIES.map((ind) => (
-                <div key={ind.label} className="flex items-center gap-1.5 rounded-full border border-border bg-paper px-3.5 py-1.5 text-[12.5px] font-medium text-text">
-                  <ind.icon className="h-3.5 w-3.5 text-brand" />
-                  {ind.label}
+                <div key={ind.label} className="flex flex-col items-center gap-2.5 rounded-2xl border border-border bg-paper px-4 py-6">
+                  <ind.icon className="h-7 w-7 text-brand" />
+                  <span className="text-[14px] font-semibold text-ink">{ind.label}</span>
                 </div>
               ))}
             </div>
@@ -281,9 +281,6 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-6xl px-6 text-center">
             <h2 className="font-display text-[26px] font-semibold text-white sm:text-[32px]">Stop losing customers to a phone that doesn&apos;t answer.</h2>
             <p className="mx-auto mt-2.5 max-w-md text-[13px] text-[#8A93A6]">Set up your receptionist in minutes. First 7 days are free.</p>
-            <Button variant="brand" size="lg" className="mt-6" asChild>
-              <Link href="/signup">Start your free trial <ArrowRight className="h-4 w-4" /></Link>
-            </Button>
           </div>
         </section>
       </main>
