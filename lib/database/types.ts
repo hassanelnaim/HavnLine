@@ -193,3 +193,13 @@ export interface DbIntegration {
   connected_at: ISODateTime | null;
   metadata: Record<string, unknown> | null;
 }
+
+export interface DbReview {
+  id: UUID;
+  business_name: string;
+  reviewer_name: string;
+  rating: number;
+  review_text: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: ISODateTime;
+}

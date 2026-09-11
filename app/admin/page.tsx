@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle, MoreVertical } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate } from "@/lib/format";
+import { getAllReviewsForModeration } from "@/lib/data/reviews";
+import { ReviewModeration } from "@/components/admin/review-moderation";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,8 @@ export default async function PlatformAdminPage() {
   ]);
 
   const rows = businesses || [];
+  const allReviews = await getAllReviewsForModeration();
+  const pendingReviews = allReviews.filter((r) => r.status === "pending");
   const active = rows.filter((b) => b.subscription_status === "active").length;
   const trialing = rows.filter((b) => b.subscription_status === "trialing").length;
   const pastDue = rows.filter((b) => b.subscription_status === "past_due").length;
@@ -75,6 +79,8 @@ export default async function PlatformAdminPage() {
           <div className="mt-2 font-display text-[24px] font-semibold text-ink">{escalatedCalls || 0}</div>
         </div>
       </div>
+
+      <ReviewModeration pendingReviews={pendingReviews} />
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-card">
         <h2 className="font-display text-[15px] font-semibold text-ink">All businesses</h2>

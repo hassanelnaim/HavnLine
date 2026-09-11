@@ -21,3 +21,16 @@ export async function updateBusinessSubscriptionStatusAction(businessId: string,
   revalidatePath(`/admin/businesses/${businessId}`);
   return { success: true };
 }
+
+export async function moderateReviewAction(reviewId: string, status: "approved" | "rejected"): Promise<ActionResult> {
+  const allowed = await isPlatformAdmin();
+  if (!allowed) return { success: false, error: "Not authorized." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("reviews").update({ status }).eq("id", reviewId);
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { success: true };
+}

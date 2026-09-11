@@ -2,10 +2,13 @@ import Link from "next/link";
 import {
   ArrowRight, Phone, PhoneMissed, PhoneCall, MessageSquareText, BookOpen, ShieldCheck,
   Mic2, CalendarClock, Check, Globe, Wrench, Scissors, Stethoscope, Scale, Hammer,
-  UtensilsCrossed, HeartPulse,
+  UtensilsCrossed, HeartPulse, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
+import { getApprovedReviews } from "@/lib/data/reviews";
+
+export const dynamic = "force-dynamic";
 
 const FEATURES = [
   { icon: Phone, title: "Answers every call, day or night", detail: "Picks up 24/7 and knows your business." },
@@ -40,7 +43,8 @@ const FAQS = [
   { q: "Can I control what it says?", a: "Yes — personality, voice, and rules are all yours to set. No prompt-writing needed." },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const reviews = await getApprovedReviews();
   return (
     <div className="min-h-screen bg-paper">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
@@ -57,7 +61,7 @@ export default function LandingPage() {
 
       <main>
         <section className="bg-ink py-14">
-          <div className="mx-auto max-w-3xl px-6">
+          <div className="mx-auto max-w-4xl px-6">
             <div className="flex items-center gap-2 text-[#8A93A6]">
               <PhoneMissed className="h-4 w-4" />
               <span className="text-[11.5px] font-semibold uppercase tracking-wide">The cost of an unanswered phone</span>
@@ -66,11 +70,23 @@ export default function LandingPage() {
               <span className="text-brand-light">62%</span> of small business calls go unanswered.
             </h2>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[#B8C0D0]">
-              Every missed call is a customer who was ready to book — and most won&apos;t call back. They&apos;ll
-              just call the next name on the list. HavnLine picks up every time, so you never have to choose
-              between running your business and answering the phone.
+              Every missed call is a customer who was ready to book — and voicemail doesn&apos;t save them the way
+              you&apos;d hope. HavnLine picks up every time, so you never have to choose between running your
+              business and answering the phone.
             </p>
-            <p className="mt-4 text-[11px] text-[#6B7488]">Source: 411 Locals, 85 businesses across 58 industries.</p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
+                <div className="font-display text-[26px] font-semibold text-white">62%</div>
+                <div className="mt-1 text-[12.5px] text-[#B8C0D0]">of calls to small businesses go unanswered.</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
+                <div className="font-display text-[26px] font-semibold text-white">85%</div>
+                <div className="mt-1 text-[12.5px] text-[#B8C0D0]">of callers who reach voicemail never call back at all.</div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-[11px] text-[#6B7488]">Sources: 411 Locals (85 businesses, 58 industries); voicemail callback behavior corroborated across Vonage, Invoca, and BIA/Kelsey research.</p>
           </div>
         </section>
 
@@ -178,6 +194,44 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Reviews — real submissions only, checked before appearing here. Section adapts gracefully with zero reviews yet. */}
+        <section className="border-y border-border bg-card py-14">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="text-center">
+              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-text-faint">From real business owners</p>
+              <h2 className="mt-2.5 font-display text-[26px] font-semibold text-ink">What it's actually like to use HavnLine</h2>
+            </div>
+
+            {reviews.length === 0 ? (
+              <div className="mx-auto mt-7 max-w-md rounded-2xl border border-dashed border-border bg-paper p-8 text-center">
+                <p className="text-[13.5px] text-text-muted">We're still early — no reviews yet. If you're using HavnLine, we'd genuinely love to hear from you.</p>
+                <Button variant="outline" size="sm" className="mt-4" asChild>
+                  <Link href="/review">Leave the first review</Link>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {reviews.slice(0, 6).map((review) => (
+                    <div key={review.id} className="rounded-2xl border border-border bg-paper p-5">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-border"}`} />
+                        ))}
+                      </div>
+                      <p className="mt-3 text-[13.5px] leading-relaxed text-text">&ldquo;{review.review_text}&rdquo;</p>
+                      <div className="mt-3 text-[12px] font-medium text-text-muted">{review.reviewer_name} · {review.business_name}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 text-center">
+                  <Link href="/review" className="text-[12.5px] font-medium text-brand hover:underline">Using HavnLine? Leave your own review</Link>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
