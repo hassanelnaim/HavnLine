@@ -240,6 +240,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link href="/terms" className="hover:text-text">Terms</Link>
             <Link href="/privacy" className="hover:text-text">Privacy</Link>
+            <Link href="/sms-terms" className="hover:text-text">SMS Terms</Link>
             <span>Front desk, automated.</span>
           </div>
         </div>

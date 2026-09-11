@@ -11,6 +11,7 @@ export default function PrivacyPage() {
           <Link href="/"><Logo /></Link>
           <div className="flex items-center gap-4 text-[13px] font-medium">
             <Link href="/terms" className="text-text-muted hover:text-text">Terms of Service</Link>
+            <Link href="/sms-terms" className="text-text-muted hover:text-text">SMS Terms</Link>
             <Link href="/" className="text-text-muted hover:text-text">Back to home</Link>
           </div>
         </div>
