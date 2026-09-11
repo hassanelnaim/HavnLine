@@ -33,7 +33,7 @@ export default async function OverviewPage() {
       <h1 className="font-display text-[24px] font-semibold text-ink">Overview</h1>
       <p className="mt-1 text-[13.5px] text-text-muted">Here&apos;s what&apos;s happened with {ai.name} recently.</p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-faint">Calls today</span>
@@ -50,8 +50,6 @@ export default async function OverviewPage() {
           <div className="mt-2 font-display text-[28px] font-semibold text-ink">{appointmentsToday}</div>
         </div>
 
-        <NewCustomersCard customers={customers} />
-
         <Link href="/dashboard/escalations" className="group rounded-2xl border border-border bg-card p-5 shadow-card transition-colors hover:border-danger/40 hover:bg-danger-soft/40">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-faint">Human escalations</span>
@@ -63,6 +61,8 @@ export default async function OverviewPage() {
           </div>
           <div className="mt-1 text-[11.5px] text-text-faint">Last 30 days — click to view</div>
         </Link>
+
+        <NewCustomersCard customers={customers} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
