@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {
-  ArrowRight, Phone, PhoneMissed, PhoneCall, MessageSquareText, BookOpen, ShieldCheck,
+  ArrowRight, Phone, PhoneMissed, PhoneCall, MessageSquareText, BookOpen, ShieldCheck, Voicemail,
   Mic2, CalendarClock, Check, Globe, Wrench, Scissors, Stethoscope, Scale, Hammer,
-  UtensilsCrossed, HeartPulse, Star,
+  UtensilsCrossed, HeartPulse, Star, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
@@ -27,6 +27,7 @@ const INDUSTRIES = [
   { icon: Scale, label: "Law Firm" },
   { icon: Hammer, label: "Home Services" },
   { icon: UtensilsCrossed, label: "Restaurant" },
+  { icon: Activity, label: "Chiropractor" },
 ];
 
 const STEPS = [
@@ -61,20 +62,38 @@ export default async function LandingPage() {
 
       <main>
         <section className="bg-ink py-14">
-          <div className="mx-auto max-w-4xl px-6">
-            <div className="flex items-center gap-2 text-[#8A93A6]">
-              <PhoneMissed className="h-4 w-4" />
-              <span className="text-[11.5px] font-semibold uppercase tracking-wide">The cost of an unanswered phone</span>
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="grid gap-10 sm:grid-cols-2">
+              <div>
+                <div className="flex items-center gap-2 text-[#8A93A6]">
+                  <PhoneMissed className="h-4 w-4" />
+                  <span className="text-[11.5px] font-semibold uppercase tracking-wide">The cost of an unanswered phone</span>
+                </div>
+                <h2 className="mt-3 font-display text-[30px] font-semibold leading-[1.15] text-white sm:text-[34px]">
+                  <span className="text-brand-light">62%</span> of small business calls go unanswered.
+                </h2>
+                <p className="mt-3 text-[13.5px] leading-relaxed text-[#B8C0D0]">
+                  Every missed call is a customer who was ready to book — and most won&apos;t call back. HavnLine
+                  picks up every time.
+                </p>
+                <p className="mt-4 text-[11px] text-[#6B7488]">Source: 411 Locals, 85 businesses across 58 industries.</p>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 text-[#8A93A6]">
+                  <Voicemail className="h-4 w-4" />
+                  <span className="text-[11.5px] font-semibold uppercase tracking-wide">Why voicemail doesn&apos;t help</span>
+                </div>
+                <h2 className="mt-3 font-display text-[30px] font-semibold leading-[1.15] text-white sm:text-[34px]">
+                  <span className="text-brand-light">85%</span> of voicemail callers never call back at all.
+                </h2>
+                <p className="mt-3 text-[13.5px] leading-relaxed text-[#B8C0D0]">
+                  A missed call isn&apos;t a second chance waiting to happen — it&apos;s almost always just gone for
+                  good.
+                </p>
+                <p className="mt-4 text-[11px] text-[#6B7488]">Corroborated across Vonage, Invoca, and BIA/Kelsey research.</p>
+              </div>
             </div>
-            <h2 className="mt-3 font-display text-[28px] font-semibold leading-[1.2] text-white sm:text-[36px]">
-              <span className="text-brand-light">62%</span> of small business calls go unanswered.
-            </h2>
-            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[#B8C0D0]">
-              Every missed call is a customer who was ready to book — and voicemail doesn&apos;t save them the way
-              you&apos;d hope. HavnLine picks up every time, so you never have to choose between running your
-              business and answering the phone.
-            </p>
-            <p className="mt-4 text-[11px] text-[#6B7488]">Source: 411 Locals, 85 businesses across 58 industries.</p>
           </div>
         </section>
 
@@ -132,18 +151,6 @@ export default async function LandingPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section className="bg-ink py-14">
-          <div className="mx-auto max-w-2xl px-6 text-center">
-            <h2 className="font-display text-[32px] font-semibold leading-[1.2] text-white sm:text-[40px]">
-              <span className="text-brand-light">85%</span> of callers who reach voicemail never call back at all.
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-[#B8C0D0]">
-              A missed call isn&apos;t a second chance waiting to happen — it&apos;s almost always just gone.
-            </p>
-            <p className="mt-4 text-[11px] text-[#6B7488]">Corroborated across Vonage, Invoca, and BIA/Kelsey research.</p>
           </div>
         </section>
 
