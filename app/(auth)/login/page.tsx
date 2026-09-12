@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signInAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string; justSignedUp?: string } }) {
@@ -28,7 +29,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         </div>
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input id="password" name="password" type="password" required className="mt-1.5" />
+          <PasswordInput id="password" name="password" required className="mt-1.5" />
         </div>
         <Button type="submit" variant="brand" className="w-full">Log in</Button>
       </form>

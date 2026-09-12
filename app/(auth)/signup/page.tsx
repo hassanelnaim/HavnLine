@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signUpAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export default function SignupPage({ searchParams }: { searchParams: { error?: string } }) {
@@ -27,7 +28,7 @@ export default function SignupPage({ searchParams }: { searchParams: { error?: s
         </div>
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input id="password" name="password" type="password" required minLength={8} className="mt-1.5" />
+          <PasswordInput id="password" name="password" required minLength={8} className="mt-1.5" />
         </div>
         <div className="flex items-start gap-2.5">
           <input id="acceptTerms" name="acceptTerms" type="checkbox" required className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-2 focus:ring-brand/30" />
