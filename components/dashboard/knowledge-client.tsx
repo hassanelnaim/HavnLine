@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Globe, Tag, Percent } from "lucide-react";
+import { Plus, Trash2, Globe, Tag, Percent, Camera, Loader2 } from "lucide-react";
 import type { DbKnowledgeItem, DbService, DbPromotion, KnowledgeCategory } from "@/lib/database/types";
 import { addKnowledgeItemAction, deleteKnowledgeItemAction, importWebsiteKnowledgeAction, addPromotionAction, togglePromotionAction, deletePromotionAction } from "@/app/actions/knowledge";
-import { addServiceAction, deleteServiceAction } from "@/app/actions/services";
+import { addServiceAction, deleteServiceAction, importServicesFromImageAction } from "@/app/actions/services";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,48 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
   const [newServicePrice, setNewServicePrice] = useState("");
   const [newServiceDuration, setNewServiceDuration] = useState(30);
   const [serviceError, setServiceError] = useState<string | null>(null);
+
+  const [photoImporting, setPhotoImporting] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoResult, setPhotoResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoImporting(true);
+    setPhotoError(null);
+    setPhotoResult(null);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const mediaType = (file.type === "image/png" ? "image/png" : file.type === "image/webp" ? "image/webp" : "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
+      const result = await importServicesFromImageAction(base64, mediaType);
+      setPhotoImporting(false);
+
+      if (!result.success) {
+        setPhotoError(result.error || "Could not read that photo.");
+        return;
+      }
+      setPhotoResult(`Added ${result.itemsAdded} service${result.itemsAdded === 1 ? "" : "s"} from your photo.`);
+      router.refresh();
+    } catch {
+      setPhotoImporting(false);
+      setPhotoError("Could not read that photo. Try a clearer picture.");
+    }
+
+    e.target.value = "";
+  }
 
   useEffect(() => { setServices(initialServices); }, [initialServices]);
 
@@ -162,6 +204,17 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
       </TabsContent>
 
       <TabsContent value="services">
+        <Card className="mb-4">
+          <CardHeader><CardTitle className="flex items-center gap-2"><Camera className="h-4 w-4 text-brand" /> No website? Upload a photo instead</CardTitle><CardDescription>Take a picture of your menu, price list, or service sheet and we&apos;ll read it directly.</CardDescription></CardHeader>
+          <CardContent className="space-y-3">
+            {photoError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{photoError}</div>}
+            {photoResult && <div className="rounded-lg border border-success/20 bg-success-soft px-3.5 py-2.5 text-[12.5px] text-success">{photoResult}</div>}
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handlePhotoSelected} className="hidden" />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={photoImporting}>
+              {photoImporting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your photo…</> : <><Camera className="h-3.5 w-3.5" /> Take or upload a photo</>}
+            </Button>
+          </CardContent>
+        </Card>
         <Card className="mb-4">
           <CardHeader><CardTitle>Add a service</CardTitle><CardDescription>Your AI only quotes prices and durations listed here.</CardDescription></CardHeader>
           <CardContent className="space-y-3">

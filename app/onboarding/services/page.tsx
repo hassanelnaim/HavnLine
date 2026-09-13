@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Globe, Sparkles } from "lucide-react";
+import { Plus, Trash2, Globe, Sparkles, Camera, Loader2 } from "lucide-react";
 import { useOnboarding, type OnboardingServiceDraft } from "@/lib/onboarding/context";
-import { importOnboardingServicesAction } from "@/app/actions/onboarding-services";
+import { importOnboardingServicesAction, importServicesFromImageAction } from "@/app/actions/onboarding-services";
 import { StepShell } from "@/components/onboarding/step-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,29 @@ function emptyService(): OnboardingServiceDraft {
   return { id: "svc_" + Math.random().toString(36).slice(2, 9), name: "", description: "", price: "", durationMinutes: 30 };
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]); // strip the "data:image/...;base64," prefix
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ServicesStep() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
+
+  const [photoImporting, setPhotoImporting] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoResult, setPhotoResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function addService() { update({ services: [...draft.services, emptyService()] }); }
   function updateService(id: string, patch: Partial<OnboardingServiceDraft>) {
@@ -46,9 +63,41 @@ export default function ServicesStep() {
     setImportResult(`Added ${imported.length} service${imported.length === 1 ? "" : "s"} from your website — review and edit below.`);
   }
 
+  async function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoImporting(true);
+    setPhotoError(null);
+    setPhotoResult(null);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const mediaType = (file.type === "image/png" ? "image/png" : file.type === "image/webp" ? "image/webp" : "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
+      const result = await importServicesFromImageAction(base64, mediaType, draft.businessName);
+      setPhotoImporting(false);
+
+      if (!result.success || !result.services) {
+        setPhotoError(result.error || "Could not read that photo.");
+        return;
+      }
+
+      const imported: OnboardingServiceDraft[] = result.services.map((s) => ({
+        id: "svc_" + Math.random().toString(36).slice(2, 9), name: s.name, description: s.description, price: s.priceDollars, durationMinutes: s.durationMinutes,
+      }));
+      update({ services: [...draft.services, ...imported] });
+      setPhotoResult(`Added ${imported.length} service${imported.length === 1 ? "" : "s"} from your photo — review and edit below.`);
+    } catch {
+      setPhotoImporting(false);
+      setPhotoError("Could not read that photo. Try a clearer picture.");
+    }
+
+    e.target.value = "";
+  }
+
   return (
     <StepShell title="What do you offer?" description="Add the services customers can book. Your AI will only quote prices listed here." backHref="/onboarding/hours" onContinue={() => router.push("/onboarding/ai-receptionist")}>
-      <Card className="mb-5">
+      <Card className="mb-3">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand" /> Faster: import from your website</CardTitle>
           <CardDescription>Paste your website and we&apos;ll pull out your real services automatically — no need to type each one by hand.</CardDescription>
@@ -65,6 +114,21 @@ export default function ServicesStep() {
               <Globe className="h-3.5 w-3.5" />{importing ? "Reading your site…" : "Import services"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Camera className="h-4 w-4 text-brand" /> No website? Upload a photo instead</CardTitle>
+          <CardDescription>Take a picture of your menu, price list, or service sheet — even handwritten or printed — and we&apos;ll read it directly.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {photoError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{photoError}</div>}
+          {photoResult && <div className="rounded-lg border border-success/20 bg-success-soft px-3.5 py-2.5 text-[12.5px] text-success">{photoResult}</div>}
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handlePhotoSelected} className="hidden" />
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={photoImporting}>
+            {photoImporting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your photo…</> : <><Camera className="h-3.5 w-3.5" /> Take or upload a photo</>}
+          </Button>
         </CardContent>
       </Card>
 

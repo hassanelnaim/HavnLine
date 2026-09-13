@@ -126,3 +126,57 @@ export async function extractServicesFromText(businessName: string, websiteText:
     return [];
   }
 }
+
+/**
+ * The photo equivalent of extractServicesFromText — for businesses
+ * that don't have a website at all, or whose real menu/price list
+ * only exists as a physical sign, printed menu, or handwritten sheet.
+ * Uses Claude's real vision capability to read the actual photo,
+ * not OCR-then-guess — same strict "never invent a price" rule as
+ * the text-based version.
+ */
+export async function extractServicesFromImage(
+  businessName: string,
+  imageBase64: string,
+  mediaType: "image/jpeg" | "image/png" | "image/webp"
+): Promise<ExtractedService[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1500,
+    system: `You extract a list of SERVICES (things customers can book/buy) from a photo of a menu, price list, or service sheet for "${businessName}". Only include services that are genuinely visible in the image — never invent a service, price, or duration that isn't clearly shown. Respond with ONLY a JSON array, no other text, no markdown fences. Each item: {"name": string, "description": string (short, one line — leave empty if the image doesn't show one), "priceDollars": string (just the number as a string — empty string "" if no price is visible), "durationMinutes": number (your best reasonable estimate if not shown, otherwise the real stated duration)}. If the image is blurry, unreadable, or doesn't actually show services/pricing, return an empty array rather than guessing.`,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+          { type: "text", text: "Extract the list of services and prices from this photo." },
+        ],
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") return [];
+
+  const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.name === "string" && item.name.trim())
+      .map((item) => ({
+        name: item.name,
+        description: typeof item.description === "string" ? item.description : "",
+        priceDollars: typeof item.priceDollars === "string" ? item.priceDollars : "",
+        durationMinutes: typeof item.durationMinutes === "number" ? item.durationMinutes : 30,
+      }));
+  } catch {
+    return [];
+  }
+}
