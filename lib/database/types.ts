@@ -17,6 +17,7 @@ export interface DbBusiness {
   stripe_subscription_id: string | null;
   subscription_status: "none" | "trialing" | "active" | "past_due" | "canceled";
   current_period_end: ISODateTime | null;
+  notification_preferences: { calls: boolean; escalations: boolean; digest: boolean } | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }

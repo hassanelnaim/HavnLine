@@ -7,3 +7,12 @@
   body { @apply bg-paper text-text antialiased; font-family: 'Inter', -apple-system, sans-serif; }
   ::selection { background-color: #E9F0FE; }
 }
+
+/* Hide Edge/IE's built-in password reveal icon — our own PasswordInput
+   component already provides a real show/hide toggle, so the browser's
+   native one just duplicates it, showing two "eye" icons stacked
+   together. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}

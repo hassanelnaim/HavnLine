@@ -27,6 +27,7 @@ export const mockBusiness: DbBusiness = {
   stripe_subscription_id: null,
   subscription_status: "active",
   current_period_end: null,
+  notification_preferences: { calls: false, escalations: true, digest: false },
   created_at: daysAgo(21),
   updated_at: daysAgo(1),
 };

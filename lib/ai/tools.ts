@@ -162,6 +162,27 @@ async function reschedule_appointment(
 async function escalate_to_human(input: { reason: string; summary: string }, ctx: ToolContext): Promise<ToolResult> {
   const admin = createAdminClient();
   await admin.from("calls").update({ outcome: "escalated", escalation_reason: input.reason }).eq("id", ctx.callId);
+
+  // Real email delivery — only if the business owner has this
+  // notification turned on AND a real email provider is configured.
+  try {
+    const { data: business } = await admin.from("businesses").select("name, notification_preferences").eq("id", ctx.businessId).single();
+    if (business?.notification_preferences?.escalations) {
+      const { data: member } = await admin.from("business_members").select("user_id").eq("business_id", ctx.businessId).limit(1).maybeSingle();
+      if (member?.user_id) {
+        const { data: userData } = await admin.auth.admin.getUserById(member.user_id);
+        const { data: call } = await admin.from("calls").select("customer_name").eq("id", ctx.callId).maybeSingle();
+        if (userData?.user?.email) {
+          const { sendEscalationEmail } = await import("@/lib/email/send");
+          await sendEscalationEmail(userData.user.email, business.name, call?.customer_name || "", input.reason, input.summary);
+        }
+      }
+    }
+  } catch (err) {
+    // Never let a notification failure break the actual call.
+    console.error("Escalation email failed:", err);
+  }
+
   return { logged: true, message: "This has been logged for the business to follow up on." };
 }
 

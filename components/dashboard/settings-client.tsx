@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Building2, UserRound, Bell, Clock, ShieldCheck } from "lucide-react";
+import { Building2, UserRound, Bell, Clock } from "lucide-react";
 import type { DbBusiness, DbBusinessHours } from "@/lib/database/types";
 import type { UserProfile } from "@/lib/data/profile";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signOutAction } from "@/app/actions/auth";
-import { updateBusinessProfileAction, updateBusinessHoursAction } from "@/app/actions/business";
+import { updateBusinessProfileAction, updateBusinessHoursAction, updateNotificationPreferencesAction } from "@/app/actions/business";
 import { updateProfileNameAction, updateEmailAction, updatePasswordAction } from "@/app/actions/profile";
 
 const WEEKDAY_LABELS: Record<string, string> = { monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday" };
@@ -24,9 +24,10 @@ export function SettingsClient({ business, profile, hours }: { business: DbBusin
   const [description, setDescription] = useState(business.description || "");
   const [address, setAddress] = useState(business.address || "");
   const [phone, setPhone] = useState(business.phone || "");
-  const [notifyCalls, setNotifyCalls] = useState(true);
-  const [notifyEscalations, setNotifyEscalations] = useState(true);
-  const [notifyDigest, setNotifyDigest] = useState(false);
+  const [notifyCalls, setNotifyCalls] = useState(business.notification_preferences?.calls ?? false);
+  const [notifyEscalations, setNotifyEscalations] = useState(business.notification_preferences?.escalations ?? true);
+  const [notifyDigest, setNotifyDigest] = useState(business.notification_preferences?.digest ?? false);
+  const [notifSaved, setNotifSaved] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -102,6 +103,14 @@ export function SettingsClient({ business, profile, hours }: { business: DbBusin
     });
   }
 
+  function handleSaveNotifications() {
+    startTransition(async () => {
+      await updateNotificationPreferencesAction({ calls: notifyCalls, escalations: notifyEscalations, digest: notifyDigest });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 2500);
+    });
+  }
+
   return (
     <Tabs defaultValue="business">
       <TabsList className="flex-wrap">
@@ -109,7 +118,6 @@ export function SettingsClient({ business, profile, hours }: { business: DbBusin
         <TabsTrigger value="hours"><Clock className="h-3.5 w-3.5" /> Hours</TabsTrigger>
         <TabsTrigger value="account"><UserRound className="h-3.5 w-3.5" /> Account</TabsTrigger>
         <TabsTrigger value="notifications"><Bell className="h-3.5 w-3.5" /> Notifications</TabsTrigger>
-        <TabsTrigger value="security"><ShieldCheck className="h-3.5 w-3.5" /> Security</TabsTrigger>
       </TabsList>
 
       <TabsContent value="business">
@@ -171,6 +179,13 @@ export function SettingsClient({ business, profile, hours }: { business: DbBusin
               {emailSaved && <p className="mt-1.5 text-[12px] text-success">Check your new email for a confirmation link.</p>}
             </div>
             <Separator />
+            <div>
+              <Label>New password</Label>
+              <div className="mt-1.5 flex gap-2"><Input type="password" placeholder="At least 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /><Button variant="outline" size="sm" onClick={handleSavePassword} disabled={isPending || newPassword.length === 0}>Update password</Button></div>
+              {passwordError && <p className="mt-1.5 text-[12px] text-danger">{passwordError}</p>}
+              {passwordSaved && <p className="mt-1.5 text-[12px] text-success">Password updated ✓</p>}
+            </div>
+            <Separator />
             <div className="flex items-center justify-between">
               <div><div className="text-[13.5px] font-medium text-text">Log out</div><div className="text-[12px] text-text-muted">End your session on this device.</div></div>
               <form action={signOutAction}><Button variant="outline" size="sm" type="submit">Log out</Button></form>
@@ -193,19 +208,11 @@ export function SettingsClient({ business, profile, hours }: { business: DbBusin
                 <Switch checked={row.value} onCheckedChange={row.set} />
               </div>
             ))}
-            <p className="pt-3 text-[11.5px] text-text-faint">These preferences aren&apos;t wired to real notifications yet.</p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="security">
-        <Card>
-          <CardHeader><CardTitle>Security</CardTitle><CardDescription>Password and account protection.</CardDescription></CardHeader>
-          <CardContent className="space-y-4">
-            <div><Label>New password</Label><Input className="mt-1.5" type="password" placeholder="At least 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
-            {passwordError && <p className="text-[12px] text-danger">{passwordError}</p>}
-            {passwordSaved && <p className="text-[12px] text-success">Password updated ✓</p>}
-            <Button variant="outline" size="sm" onClick={handleSavePassword} disabled={isPending || newPassword.length === 0}>Update password</Button>
+            <p className="pt-3 text-[11.5px] text-text-faint">Escalation emails require an email provider to be connected on the backend — ask your developer to confirm one's set up if emails aren't arriving.</p>
+            <div className="flex items-center gap-3 pt-1">
+              <Button variant="brand" size="sm" onClick={handleSaveNotifications} disabled={isPending}>Save preferences</Button>
+              {notifSaved && <span className="text-[12px] text-success">Saved ✓</span>}
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
