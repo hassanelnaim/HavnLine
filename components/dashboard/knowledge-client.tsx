@@ -205,17 +205,6 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
 
       <TabsContent value="services">
         <Card className="mb-4">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Camera className="h-4 w-4 text-brand" /> No website? Upload a photo instead</CardTitle><CardDescription>Take a picture of your menu, price list, or service sheet and we&apos;ll read it directly.</CardDescription></CardHeader>
-          <CardContent className="space-y-3">
-            {photoError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{photoError}</div>}
-            {photoResult && <div className="rounded-lg border border-success/20 bg-success-soft px-3.5 py-2.5 text-[12.5px] text-success">{photoResult}</div>}
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handlePhotoSelected} className="hidden" />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={photoImporting}>
-              {photoImporting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your photo…</> : <><Camera className="h-3.5 w-3.5" /> Take or upload a photo</>}
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="mb-4">
           <CardHeader><CardTitle>Add a service</CardTitle><CardDescription>Your AI only quotes prices and durations listed here.</CardDescription></CardHeader>
           <CardContent className="space-y-3">
             {serviceError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{serviceError}</div>}
@@ -289,7 +278,7 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
       </TabsContent>
 
       <TabsContent value="import">
-        <Card>
+        <Card className="mb-4">
           <CardHeader><CardTitle className="flex items-center gap-2"><Globe className="h-4 w-4 text-text-faint" /> Import knowledge from your website</CardTitle><CardDescription>Let HavnLine read your website and automatically pull in FAQs, services, and business info.</CardDescription></CardHeader>
           <CardContent className="space-y-3">
             {importMsg && <div className="rounded-lg border border-border bg-paper px-3.5 py-2.5 text-[12.5px] text-text-muted">{importMsg}</div>}
@@ -297,6 +286,18 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
               <Input placeholder="yourbusiness.com" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
               <Button variant="brand" onClick={handleImport} disabled={importing || !websiteUrl.trim()}>{importing ? "Reading…" : "Import"}</Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Camera className="h-4 w-4 text-brand" /> No website? Import services from a photo</CardTitle><CardDescription>Take a picture of your menu, price list, or service sheet — we&apos;ll read it and add the services directly.</CardDescription></CardHeader>
+          <CardContent className="space-y-3">
+            {photoError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{photoError}</div>}
+            {photoResult && <div className="rounded-lg border border-success/20 bg-success-soft px-3.5 py-2.5 text-[12.5px] text-success">{photoResult}</div>}
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handlePhotoSelected} className="hidden" />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={photoImporting}>
+              {photoImporting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your photo…</> : <><Camera className="h-3.5 w-3.5" /> Take or upload a photo</>}
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>
