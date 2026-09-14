@@ -4,6 +4,8 @@ import { resolveBusinessFromPhoneNumber } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { getRequestUrl } from "@/lib/ai/twimlHelpers";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/webhooks/twilio/status
  *

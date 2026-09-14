@@ -6,6 +6,8 @@ import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProv
 import { OPERATIONAL_SUBSCRIPTION_STATUSES } from "@/lib/billing/stripe";
 import { sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
+export const dynamic = "force-dynamic";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 function twiml(body: string) {

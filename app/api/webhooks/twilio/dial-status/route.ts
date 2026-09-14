@@ -4,6 +4,8 @@ import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/webhooks/twilio/dial-status
  *

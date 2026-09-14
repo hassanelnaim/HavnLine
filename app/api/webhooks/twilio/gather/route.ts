@@ -5,6 +5,8 @@ import { getBusinessTwilioAuthToken } from "@/lib/ai/context";
 import { validateTwilioSignature } from "@/lib/integrations/telephony/twilioProvider";
 import { twiml, escapeXml, buildTurnResponseTwiml, lastTurnUsedTool, textLikelyNeedsTool, sayLine, getRequestUrl } from "@/lib/ai/twimlHelpers";
 
+export const dynamic = "force-dynamic";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 const FILLERS = [
