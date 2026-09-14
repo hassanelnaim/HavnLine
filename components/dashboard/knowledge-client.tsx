@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Globe, Tag, Percent, Camera, Loader2 } from "lucide-react";
+import { Plus, Trash2, Globe, Tag, Percent, Camera, Loader2, Pencil } from "lucide-react";
 import type { DbKnowledgeItem, DbService, DbPromotion, KnowledgeCategory } from "@/lib/database/types";
 import { addKnowledgeItemAction, deleteKnowledgeItemAction, importWebsiteKnowledgeAction, addPromotionAction, togglePromotionAction, deletePromotionAction } from "@/app/actions/knowledge";
-import { addServiceAction, deleteServiceAction, importServicesFromImageAction } from "@/app/actions/services";
+import { addServiceAction, updateServiceAction, deleteServiceAction, importServicesFromImageAction } from "@/app/actions/services";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -128,6 +129,41 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
     startTransition(async () => { await deleteServiceAction(id); });
   }
 
+  // ---- Edit service dialog ----
+  const [editingService, setEditingService] = useState<DbService | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDuration, setEditDuration] = useState(30);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  function openEditService(service: DbService) {
+    setEditingService(service);
+    setEditName(service.name);
+    setEditDescription(service.description || "");
+    setEditPrice((service.price_cents / 100).toString());
+    setEditDuration(service.duration_minutes);
+    setEditError(null);
+  }
+
+  function saveEditService() {
+    if (!editingService) return;
+    setEditSaving(true);
+    setEditError(null);
+    startTransition(async () => {
+      const result = await updateServiceAction(editingService.id, { name: editName, description: editDescription, priceDollars: editPrice, durationMinutes: editDuration });
+      setEditSaving(false);
+      if (!result.success) {
+        setEditError(result.error || "Could not save changes.");
+        return;
+      }
+      setServices((prev) => prev.map((s) => (s.id === editingService.id ? { ...s, name: editName, description: editDescription, price_cents: Math.round((parseFloat(editPrice) || 0) * 100), duration_minutes: editDuration } : s)));
+      setEditingService(null);
+      router.refresh();
+    });
+  }
+
   // Promotions
   const [promotions, setPromotions] = useState(initialPromotions);
   const [promoTitle, setPromoTitle] = useState("");
@@ -226,7 +262,8 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
                 <div><div className="text-[13.5px] font-medium text-text">{s.name}</div><div className="text-[12px] text-text-muted">{s.description}</div></div>
                 <div className="flex items-center gap-3">
                   <div className="text-right font-mono text-[12.5px] text-text">{formatCents(s.price_cents)} · {s.duration_minutes}m</div>
-                  <button onClick={() => removeService(s.id)} className="rounded-md p-1 text-text-faint hover:bg-danger-soft hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => openEditService(s)} className="rounded-md p-1 text-text-faint hover:bg-brand-soft hover:text-brand" aria-label="Edit service"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => removeService(s.id)} className="rounded-md p-1 text-text-faint hover:bg-danger-soft hover:text-danger" aria-label="Delete service"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </CardContent></Card>
             ))}
@@ -301,6 +338,29 @@ export function KnowledgeClient({ initialItems, initialServices, initialPromotio
           </CardContent>
         </Card>
       </TabsContent>
+
+      <Dialog open={editingService !== null} onOpenChange={(open) => !open && setEditingService(null)}>
+        <DialogContent>
+          <DialogTitle className="font-display text-[17px] font-semibold text-ink">Edit service</DialogTitle>
+          <DialogDescription className="mt-1 text-[13px] text-text-muted">Changes take effect immediately — your AI only quotes what's saved here.</DialogDescription>
+
+          <div className="mt-5 space-y-4">
+            {editError && <div className="rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">{editError}</div>}
+
+            <div><Label>Name</Label><Input className="mt-1.5" value={editName} onChange={(e) => setEditName(e.target.value)} /></div>
+            <div><Label>Description</Label><Input className="mt-1.5" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Price ($)</Label><Input type="number" step="0.01" className="mt-1.5" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} /></div>
+              <div><Label>Duration (minutes)</Label><Input type="number" className="mt-1.5" value={editDuration} onChange={(e) => setEditDuration(parseInt(e.target.value) || 0)} /></div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="brand" onClick={saveEditService} disabled={editSaving || !editName.trim()}>{editSaving ? "Saving…" : "Save changes"}</Button>
+              <Button variant="outline" onClick={() => setEditingService(null)} disabled={editSaving}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }

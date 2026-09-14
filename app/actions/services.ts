@@ -42,6 +42,37 @@ export async function addServiceAction(input: { name: string; description: strin
   return { success: true };
 }
 
+export async function updateServiceAction(id: string, input: { name: string; description: string; priceDollars: string; durationMinutes: number }): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  if (!input.name.trim()) return { success: false, error: "Service name is required." };
+
+  const admin = createAdminClient();
+  // Scoped to this business's own ID too, not just the service ID —
+  // otherwise a guessed or leaked service UUID from another business
+  // could be edited from here.
+  const { error } = await admin
+    .from("services")
+    .update({
+      name: input.name,
+      description: input.description || null,
+      price_cents: Math.round((parseFloat(input.priceDollars) || 0) * 100),
+      duration_minutes: input.durationMinutes || 30,
+    })
+    .eq("id", id)
+    .eq("business_id", businessId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/dashboard/knowledge");
+  revalidatePath("/dashboard/ai-employee");
+  return { success: true };
+}
+
 export async function deleteServiceAction(id: string): Promise<ActionResult> {
   let businessId: string;
   try {

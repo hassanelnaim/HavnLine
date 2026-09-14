@@ -30,8 +30,6 @@ const RESPONSIBILITY_ITEMS: { key: keyof AiResponsibilities; label: string }[] =
   { key: "escalate_to_human", label: "Escalating to a human" },
 ];
 
-const WEEKDAY_LABELS: Record<string, string> = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
-
 export function AiEmployeeClient({ ai, voice, hours }: { ai: DbAiReceptionist; voice: DbAiVoiceConfig; hours: DbBusinessHours[] }) {
   const [name, setName] = useState(ai.name);
   const [personality, setPersonality] = useState(ai.personality);
@@ -120,16 +118,6 @@ export function AiEmployeeClient({ ai, voice, hours }: { ai: DbAiReceptionist; v
       </TabsContent>
 
       <TabsContent value="behavior">
-        <Card className="mb-4">
-          <CardHeader><CardTitle>Business hours</CardTitle><CardDescription>Edit these from Settings → Hours.</CardDescription></CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {hours.map((h) => (
-              <span key={h.weekday} className="rounded-full border border-border bg-paper px-3 py-1 text-[12px] text-text-muted">
-                {WEEKDAY_LABELS[h.weekday]}: {h.is_open ? `${h.open_time}–${h.close_time}` : "Closed"}
-              </span>
-            ))}
-          </CardContent>
-        </Card>
         <Card>
           <CardHeader><CardTitle>Rules</CardTitle><CardDescription>Extra instructions layered on top of the defaults.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
