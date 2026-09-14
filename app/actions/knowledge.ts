@@ -40,6 +40,30 @@ export async function addKnowledgeItemAction(input: { category: KnowledgeCategor
   return { success: true };
 }
 
+export async function updateKnowledgeItemAction(id: string, input: { title?: string; content: string }): Promise<ActionResult> {
+  let businessId: string;
+  try {
+    businessId = await requireBusinessId();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Not authenticated." };
+  }
+
+  if (!input.content.trim()) return { success: false, error: "Content can't be empty." };
+
+  const admin = createAdminClient();
+  // Scoped to this business's own ID, same as delete — a knowledge
+  // item ID from another business should never be editable from here.
+  const { error } = await admin
+    .from("knowledge_items")
+    .update({ title: input.title || null, content: input.content })
+    .eq("id", id)
+    .eq("business_id", businessId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/dashboard/knowledge");
+  return { success: true };
+}
+
 export async function deleteKnowledgeItemAction(id: string): Promise<ActionResult> {
   let businessId: string;
   try {
