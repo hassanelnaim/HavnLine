@@ -2,6 +2,7 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimit";
 
 export interface SubmitReviewResult {
   success: boolean;
@@ -15,6 +16,15 @@ export async function submitReviewAction(input: {
   reviewText: string;
 }): Promise<SubmitReviewResult> {
   if (!isSupabaseConfigured()) return { success: true };
+
+  // Real rate limiting — this endpoint requires no login at all, so
+  // without this, anyone could script thousands of fake submissions
+  // into the moderation queue.
+  const ip = getClientIp();
+  const allowed = await checkRateLimit(`review_submit:${ip}`, 3, 60);
+  if (!allowed) {
+    return { success: false, error: "Too many review submissions from this connection. Please try again later." };
+  }
 
   if (!input.businessName.trim() || !input.reviewerName.trim() || !input.reviewText.trim()) {
     return { success: false, error: "All fields are required." };

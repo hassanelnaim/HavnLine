@@ -10,28 +10,23 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
   const allowed = await isPlatformAdmin();
 
   if (!allowed) {
-    // Fail loudly instead of silently redirecting — a silent bounce
-    // back to the normal dashboard looks identical to "this page does
-    // nothing," which is exactly the confusing symptom this caused.
+    // Log the real diagnostic detail server-side only (visible to you
+    // via Vercel's logs) — never show the configured admin email in
+    // the actual page, since that's real information a non-admin
+    // visitor (or an attacker) shouldn't be able to learn just by
+    // navigating here.
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const configuredEmail = process.env.PLATFORM_ADMIN_EMAIL;
+    console.warn(`[platform-admin] Access denied. Logged in as: ${user?.email || "no session"}. Configured admin set: ${Boolean(configuredEmail)}.`);
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center">
         <div className="max-w-sm rounded-2xl border border-border bg-card p-6 shadow-card">
           <h1 className="font-display text-[16px] font-semibold text-ink">Access restricted</h1>
           <p className="mt-2 text-[13px] text-text-muted">
-            {!configuredEmail
-              ? "PLATFORM_ADMIN_EMAIL isn't set in this deployment's environment variables yet."
-              : "The logged-in email doesn't match the configured platform admin email."}
+            You don&apos;t have access to this page. If you believe this is a mistake, check the server logs for the exact reason.
           </p>
-          {configuredEmail && (
-            <div className="mt-3 space-y-1 rounded-lg border border-border bg-paper px-3 py-2.5 text-left text-[12px]">
-              <div>Logged in as: <span className="font-mono font-medium text-text">{user?.email || "—"}</span></div>
-              <div>Configured admin: <span className="font-mono font-medium text-text">{configuredEmail}</span></div>
-            </div>
-          )}
           <Link href="/dashboard" className="mt-4 inline-block text-[13px] font-medium text-brand hover:underline">Back to my dashboard</Link>
         </div>
       </div>
