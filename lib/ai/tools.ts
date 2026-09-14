@@ -54,6 +54,31 @@ async function book_appointment(
   ctx: ToolContext
 ): Promise<ToolResult> {
   const admin = createAdminClient();
+  const service = ctx.context.services.find((s) => s.name.toLowerCase() === input.service_name.toLowerCase());
+  const durationMinutes = service?.duration_minutes || 30;
+
+  // Real fix for a real bug: the AI sometimes said one time out loud
+  // ("5:30") but passed stale start_iso/end_iso values still pointing
+  // at an earlier-discussed time ("5:00"), booking the wrong slot
+  // while claiming the right one. Rather than trust the AI's two
+  // separately-constructed values needing to agree with each other,
+  // re-fetch real availability for this date and use whichever slot's
+  // OWN start/end actually matches the stated time — the single
+  // source of truth, not two numbers that can silently drift apart.
+  const provider = await getCalendarProviderForBusiness(ctx.businessId);
+  const availability = await provider.getAvailability({ businessId: ctx.businessId, date: input.date, durationMinutes });
+  const normalizedRequestedTime = input.time.trim().toLowerCase().replace(/\s+/g, "");
+  const matchingSlot = availability.slots.find((s) => s.label.trim().toLowerCase().replace(/\s+/g, "") === normalizedRequestedTime);
+
+  const authoritativeStartIso = matchingSlot?.start || input.start_iso;
+  const authoritativeEndIso = matchingSlot?.end || input.end_iso;
+
+  if (!matchingSlot) {
+    // We couldn't independently verify this exact time is real and
+    // open right now — safer to report that back than silently trust
+    // a value that already proved unreliable once.
+    console.warn(`book_appointment: no matching availability slot found for "${input.time}" on ${input.date} — falling back to AI-provided timestamps.`);
+  }
 
   // Defense-in-depth duplicate check — a second, independent layer on
   // top of handleTurn()'s retry detection. If a matching appointment
@@ -84,8 +109,6 @@ async function book_appointment(
     customerId = newCustomer?.id;
   }
 
-  const service = ctx.context.services.find((s) => s.name.toLowerCase() === input.service_name.toLowerCase());
-
   const { data: appointment, error } = await admin
     .from("appointments")
     .insert({
@@ -105,13 +128,12 @@ async function book_appointment(
 
   if (error) return { success: false, error: error.message };
 
-  const provider = await getCalendarProviderForBusiness(ctx.businessId);
   const calendarResult = await provider.createEvent({
     businessId: ctx.businessId,
     title: `${input.service_name} — ${input.customer_name}`,
     description: `Booked by AI receptionist. Phone: ${input.phone}`,
-    startTime: input.start_iso,
-    endTime: input.end_iso,
+    startTime: authoritativeStartIso,
+    endTime: authoritativeEndIso,
   });
 
   if (calendarResult.success && calendarResult.eventId) {
