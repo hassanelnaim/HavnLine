@@ -33,14 +33,14 @@ export default function SmsTermsPage() {
               <li>A customer calls a business phone number that uses HavnLine. The call is answered live by that business's AI receptionist.</li>
               <li>If the customer asks to book an appointment, the AI verbally asks for and collects the customer's name and phone number during that same live call.</li>
               <li>
-                Immediately after collecting the phone number, the AI <strong>verbally states, out loud, on the call</strong>:
+                Immediately after collecting the phone number, the AI <strong>verbally asks for permission, out loud, on the call</strong> — this is a real request, not a notification, and the customer can decline:
                 <div className="mt-2 rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
-                  "Great, and I'll text you a confirmation at that number."
+                  "Is it okay if I text you a confirmation at that number? You can reply STOP anytime to opt out."
                 </div>
               </li>
-              <li>The customer's continued participation in booking, after hearing this stated out loud, is their opt-in consent. This spoken statement is the Call to Action — there is no web form, checkbox, or written opt-in anywhere in this flow, since consent is captured verbally in real time.</li>
-              <li>Immediately after the call ends, that phone number receives <strong>exactly one</strong> automated text message confirming the appointment (business name, service, date, and time).</li>
-              <li>No further messages are sent to that number unless the customer calls and books again, repeating the same verbal opt-in described above.</li>
+              <li>The customer verbally agrees ("yes," "sure," "sounds good," etc.) before any message is sent. If the customer declines or doesn't agree, no text is sent to that number at all. This verbal agreement is the Call to Action — there is no web form or checkbox anywhere in this flow, since consent is requested and captured verbally, in real time, on the same call.</li>
+              <li>Only after receiving that verbal "yes" does the call end and trigger <strong>exactly one</strong> automated text message confirming the appointment (business name, service, date, and time).</li>
+              <li>No further messages are sent to that number unless the customer calls and books again, repeating the same verbal consent request described above.</li>
             </ol>
           </div>
 

@@ -50,7 +50,7 @@ async function check_availability(input: { date: string; duration_minutes?: numb
 }
 
 async function book_appointment(
-  input: { customer_name: string; phone: string; service_name: string; date: string; time: string; start_iso: string; end_iso: string },
+  input: { customer_name: string; phone: string; service_name: string; date: string; time: string; start_iso: string; end_iso: string; sms_consent: boolean },
   ctx: ToolContext
 ): Promise<ToolResult> {
   const admin = createAdminClient();
@@ -120,10 +120,15 @@ async function book_appointment(
 
   await admin.from("calls").update({ outcome: "appointment_booked" }).eq("id", ctx.callId);
 
-  const smsBody = `You're booked at ${ctx.context.business.name} for ${input.service_name} on ${input.date} at ${input.time}. See you then! Msg&data rates may apply. Reply HELP for help, STOP to cancel.`;
-  await smsClient.send(ctx.businessId, input.phone, smsBody);
+  // The confirmation text only ever sends if the customer actually
+  // said yes on the call — this is the real mechanism behind the
+  // documented consent flow, not just a claim in the compliance page.
+  if (input.sms_consent) {
+    const smsBody = `You're booked at ${ctx.context.business.name} for ${input.service_name} on ${input.date} at ${input.time}. See you then! Msg&data rates may apply. Reply HELP for help, STOP to cancel.`;
+    await smsClient.send(ctx.businessId, input.phone, smsBody);
+  }
 
-  return { success: true, appointment_id: appointment.id };
+  return { success: true, appointment_id: appointment.id, sms_sent: input.sms_consent };
 }
 
 async function cancel_appointment(input: { phone: string; date?: string }, ctx: ToolContext): Promise<ToolResult> {
@@ -215,7 +220,7 @@ export const TOOL_DEFINITIONS = [
   { name: "lookup_customer", description: "Look up an existing customer by phone number.", input_schema: { type: "object" as const, properties: { phone: { type: "string" } }, required: ["phone"] } },
   { name: "create_customer", description: "Create a new customer record.", input_schema: { type: "object" as const, properties: { name: { type: "string" }, phone: { type: "string" } }, required: ["name", "phone"] } },
   { name: "check_availability", description: "Check real appointment availability for a given date. Always call this before offering a time.", input_schema: { type: "object" as const, properties: { date: { type: "string", description: "YYYY-MM-DD" }, duration_minutes: { type: "number" } }, required: ["date"] } },
-  { name: "book_appointment", description: "Book a real appointment. Only call after confirming date/time/service with the customer and checking availability.", input_schema: { type: "object" as const, properties: { customer_name: { type: "string" }, phone: { type: "string" }, service_name: { type: "string" }, date: { type: "string" }, time: { type: "string" }, start_iso: { type: "string" }, end_iso: { type: "string" } }, required: ["customer_name", "phone", "service_name", "date", "time", "start_iso", "end_iso"] } },
+  { name: "book_appointment", description: "Book a real appointment. Only call after confirming date/time/service with the customer, checking availability, and asking the customer for permission to text them a confirmation. Set sms_consent based on their real, actual answer — true only if they clearly agreed, false if they declined or didn't clearly agree.", input_schema: { type: "object" as const, properties: { customer_name: { type: "string" }, phone: { type: "string" }, service_name: { type: "string" }, date: { type: "string" }, time: { type: "string" }, start_iso: { type: "string" }, end_iso: { type: "string" }, sms_consent: { type: "boolean", description: "True only if the customer clearly and verbally agreed to receive a confirmation text. Never default this to true." } }, required: ["customer_name", "phone", "service_name", "date", "time", "start_iso", "end_iso", "sms_consent"] } },
   { name: "cancel_appointment", description: "Cancel an existing appointment for this customer.", input_schema: { type: "object" as const, properties: { phone: { type: "string" }, date: { type: "string" } }, required: ["phone"] } },
   { name: "reschedule_appointment", description: "Move an existing appointment to a new date/time.", input_schema: { type: "object" as const, properties: { phone: { type: "string" }, new_date: { type: "string" }, new_time: { type: "string" }, old_date: { type: "string" } }, required: ["phone", "new_date", "new_time"] } },
   { name: "escalate_to_human", description: "Log this call for the business owner to follow up on later — like a voicemail. Use for refunds, complaints, anything you can't resolve. Does NOT require anyone to be available now.", input_schema: { type: "object" as const, properties: { reason: { type: "string" }, summary: { type: "string" } }, required: ["reason", "summary"] } },
