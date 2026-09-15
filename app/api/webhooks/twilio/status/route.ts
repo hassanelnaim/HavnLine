@@ -9,9 +9,17 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/webhooks/twilio/status
  *
- * Twilio posts here when a call ends. We use it to close out the call
- * record with the real duration Twilio reports.
+ * Twilio posts here when a call's status changes — not just once at
+ * the end. If this route is configured to fire on every status change
+ * (ringing, in-progress, completed, etc.), calling endCall() on an
+ * early event would record duration=0 before the real duration is
+ * ever known, since Twilio's CallDuration is only meaningful once the
+ * call has actually completed. This is a likely real cause of calls
+ * always showing "0m" — added a check so duration is only ever
+ * recorded on a genuine terminal status.
  */
+const TERMINAL_STATUSES = ["completed", "busy", "failed", "no-answer", "canceled"];
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const params: Record<string, string> = {};
@@ -25,9 +33,10 @@ export async function POST(request: NextRequest) {
   }
 
   const callId = request.nextUrl.searchParams.get("callId");
+  const callStatus = params.CallStatus;
   const duration = parseInt(params.CallDuration || "0", 10);
 
-  if (callId) {
+  if (callId && TERMINAL_STATUSES.includes(callStatus)) {
     await endCall(callId, duration);
   }
 

@@ -18,15 +18,27 @@ export default async function OverviewPage() {
     getBusiness(), getAiReceptionist(), getCalls(), getAppointments(), getCustomers(),
   ]);
 
+  const timezone = business.timezone || "America/New_York";
+
   const today = new Date().toDateString();
+  const todayISO = new Date().toISOString().slice(0, 10);
   const callsToday = calls.filter((c) => new Date(c.started_at).toDateString() === today).length;
-  const appointmentsToday = appointments.filter((a) => a.date === new Date().toISOString().slice(0, 10)).length;
+  const appointmentsToday = appointments.filter((a) => a.date === todayISO && a.status !== "cancelled").length;
 
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const escalationsLast30 = calls.filter((c) => c.outcome === "escalated" && new Date(c.started_at).getTime() >= thirtyDaysAgo).length;
 
   const recentCalls = calls.slice(0, 5);
-  const upcomingAppointments = appointments.filter((a) => a.status === "confirmed").slice(0, 5);
+
+  // Real fix: this previously only checked status === "confirmed" —
+  // it never checked the date at all, so any confirmed appointment,
+  // past or future, showed up here. Now it matches the same filter
+  // the real Appointments page uses: date must be today or later, and
+  // not cancelled, sorted so the soonest one shows first.
+  const upcomingAppointments = appointments
+    .filter((a) => a.date >= todayISO && a.status !== "cancelled")
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+    .slice(0, 5);
 
   return (
     <div>
@@ -76,16 +88,16 @@ export default async function OverviewPage() {
           ) : (
             <div className="space-y-1">
               {recentCalls.map((call) => (
-                <div key={call.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 hover:bg-paper">
+                <Link key={call.id} href={`/dashboard/calls/${call.id}`} className="flex items-center justify-between rounded-lg px-2 py-2.5 hover:bg-paper">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">PC</div>
                     <div>
                       <div className="text-[13px] font-medium text-text">{call.customer_name}</div>
-                      <div className="text-[11.5px] text-text-faint">{formatDateTime(call.started_at)}</div>
+                      <div className="text-[11.5px] text-text-faint">{formatDateTime(call.started_at, timezone)}</div>
                     </div>
                   </div>
                   <CallOutcomeBadge outcome={call.outcome} />
-                </div>
+                </Link>
               ))}
             </div>
           )}

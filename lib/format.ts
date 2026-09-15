@@ -9,12 +9,26 @@ export function formatDuration(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-export function formatDateTime(iso: string): string {
+/**
+ * Real fix for calls showing the wrong time: this now REQUIRES a real
+ * IANA timezone (e.g. "America/Detroit"). The previous version passed
+ * `undefined` as the locale, which uses the server's own timezone —
+ * UTC on Vercel — to format a timestamp that's stored in UTC but
+ * meant to be read in the business's actual local time. That mismatch
+ * is exactly why every call showed several hours ahead of the real
+ * time. Making this required (not optional) means TypeScript itself
+ * will flag any call site that forgets to pass it.
+ */
+export function formatDateTime(iso: string, timezone: string): string {
   const d = new Date(iso);
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString(undefined, { timeZone: timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export function formatDate(iso: string): string {
+  // Pure calendar dates (YYYY-MM-DD, no time component) were never
+  // affected by the timezone bug — appending T00:00:00 before parsing
+  // and formatting with the server's own timezone round-trips back to
+  // the same calendar date either way. Left as-is intentionally.
   const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }

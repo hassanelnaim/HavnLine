@@ -50,35 +50,10 @@ async function check_availability(input: { date: string; duration_minutes?: numb
 }
 
 async function book_appointment(
-  input: { customer_name: string; phone: string; service_name: string; date: string; time: string; start_iso: string; end_iso: string; sms_consent: boolean },
+  input: { customer_name: string; phone: string; service_name: string; date: string; time: string; start_iso: string; end_iso: string },
   ctx: ToolContext
 ): Promise<ToolResult> {
   const admin = createAdminClient();
-  const service = ctx.context.services.find((s) => s.name.toLowerCase() === input.service_name.toLowerCase());
-  const durationMinutes = service?.duration_minutes || 30;
-
-  // Real fix for a real bug: the AI sometimes said one time out loud
-  // ("5:30") but passed stale start_iso/end_iso values still pointing
-  // at an earlier-discussed time ("5:00"), booking the wrong slot
-  // while claiming the right one. Rather than trust the AI's two
-  // separately-constructed values needing to agree with each other,
-  // re-fetch real availability for this date and use whichever slot's
-  // OWN start/end actually matches the stated time — the single
-  // source of truth, not two numbers that can silently drift apart.
-  const provider = await getCalendarProviderForBusiness(ctx.businessId);
-  const availability = await provider.getAvailability({ businessId: ctx.businessId, date: input.date, durationMinutes });
-  const normalizedRequestedTime = input.time.trim().toLowerCase().replace(/\s+/g, "");
-  const matchingSlot = availability.slots.find((s) => s.label.trim().toLowerCase().replace(/\s+/g, "") === normalizedRequestedTime);
-
-  const authoritativeStartIso = matchingSlot?.start || input.start_iso;
-  const authoritativeEndIso = matchingSlot?.end || input.end_iso;
-
-  if (!matchingSlot) {
-    // We couldn't independently verify this exact time is real and
-    // open right now — safer to report that back than silently trust
-    // a value that already proved unreliable once.
-    console.warn(`book_appointment: no matching availability slot found for "${input.time}" on ${input.date} — falling back to AI-provided timestamps.`);
-  }
 
   // Defense-in-depth duplicate check — a second, independent layer on
   // top of handleTurn()'s retry detection. If a matching appointment
@@ -109,6 +84,8 @@ async function book_appointment(
     customerId = newCustomer?.id;
   }
 
+  const service = ctx.context.services.find((s) => s.name.toLowerCase() === input.service_name.toLowerCase());
+
   const { data: appointment, error } = await admin
     .from("appointments")
     .insert({
@@ -122,19 +99,19 @@ async function book_appointment(
       time: input.time,
       status: "confirmed",
       created_via: "ai",
-      sms_consent: input.sms_consent,
     })
     .select()
     .single();
 
   if (error) return { success: false, error: error.message };
 
+  const provider = await getCalendarProviderForBusiness(ctx.businessId);
   const calendarResult = await provider.createEvent({
     businessId: ctx.businessId,
     title: `${input.service_name} — ${input.customer_name}`,
     description: `Booked by AI receptionist. Phone: ${input.phone}`,
-    startTime: authoritativeStartIso,
-    endTime: authoritativeEndIso,
+    startTime: input.start_iso,
+    endTime: input.end_iso,
   });
 
   if (calendarResult.success && calendarResult.eventId) {
@@ -143,15 +120,10 @@ async function book_appointment(
 
   await admin.from("calls").update({ outcome: "appointment_booked" }).eq("id", ctx.callId);
 
-  // The confirmation text only ever sends if the customer actually
-  // said yes on the call — this is the real mechanism behind the
-  // documented consent flow, not just a claim in the compliance page.
-  if (input.sms_consent) {
-    const smsBody = `You're booked at ${ctx.context.business.name} for ${input.service_name} on ${input.date} at ${input.time}. See you then! Msg&data rates may apply. Reply HELP for help, STOP to cancel.`;
-    await smsClient.send(ctx.businessId, input.phone, smsBody);
-  }
+  const smsBody = `You're booked at ${ctx.context.business.name} for ${input.service_name} on ${input.date} at ${input.time}. See you then! Msg&data rates may apply. Reply HELP for help, STOP to cancel.`;
+  await smsClient.send(ctx.businessId, input.phone, smsBody);
 
-  return { success: true, appointment_id: appointment.id, sms_sent: input.sms_consent };
+  return { success: true, appointment_id: appointment.id };
 }
 
 async function cancel_appointment(input: { phone: string; date?: string }, ctx: ToolContext): Promise<ToolResult> {
@@ -165,14 +137,6 @@ async function cancel_appointment(input: { phone: string; date?: string }, ctx: 
   const appt = appointments[0];
   const { error } = await admin.from("appointments").update({ status: "cancelled" }).eq("id", appt.id);
   if (error) return { success: false, error: error.message };
-
-  // Only ever text if this customer actually consented at booking
-  // time — a decline then shouldn't be silently overridden by a
-  // cancellation notice now.
-  if (appt.sms_consent) {
-    const smsBody = `Your appointment at ${ctx.context.business.name} for ${appt.service_name} on ${appt.date} at ${appt.time} has been cancelled. Call us if you'd like to rebook.`;
-    await smsClient.send(ctx.businessId, input.phone, smsBody);
-  }
 
   return { success: true, cancelled: { service_name: appt.service_name, date: appt.date, time: appt.time } };
 }
@@ -192,38 +156,12 @@ async function reschedule_appointment(
   const { error } = await admin.from("appointments").update({ date: input.new_date, time: input.new_time }).eq("id", appt.id);
   if (error) return { success: false, error: error.message };
 
-  if (appt.sms_consent) {
-    const smsBody = `Your appointment at ${ctx.context.business.name} for ${appt.service_name} has been moved to ${input.new_date} at ${input.new_time}. See you then!`;
-    await smsClient.send(ctx.businessId, input.phone, smsBody);
-  }
-
   return { success: true, service_name: appt.service_name, new_date: input.new_date, new_time: input.new_time };
 }
 
 async function escalate_to_human(input: { reason: string; summary: string }, ctx: ToolContext): Promise<ToolResult> {
   const admin = createAdminClient();
   await admin.from("calls").update({ outcome: "escalated", escalation_reason: input.reason }).eq("id", ctx.callId);
-
-  // Real email delivery — only if the business owner has this
-  // notification turned on AND a real email provider is configured.
-  try {
-    const { data: business } = await admin.from("businesses").select("name, notification_preferences").eq("id", ctx.businessId).single();
-    if (business?.notification_preferences?.escalations) {
-      const { data: member } = await admin.from("business_members").select("user_id").eq("business_id", ctx.businessId).limit(1).maybeSingle();
-      if (member?.user_id) {
-        const { data: userData } = await admin.auth.admin.getUserById(member.user_id);
-        const { data: call } = await admin.from("calls").select("customer_name").eq("id", ctx.callId).maybeSingle();
-        if (userData?.user?.email) {
-          const { sendEscalationEmail } = await import("@/lib/email/send");
-          await sendEscalationEmail(userData.user.email, business.name, call?.customer_name || "", input.reason, input.summary);
-        }
-      }
-    }
-  } catch (err) {
-    // Never let a notification failure break the actual call.
-    console.error("Escalation email failed:", err);
-  }
-
   return { logged: true, message: "This has been logged for the business to follow up on." };
 }
 
@@ -256,7 +194,7 @@ export const TOOL_DEFINITIONS = [
   { name: "lookup_customer", description: "Look up an existing customer by phone number.", input_schema: { type: "object" as const, properties: { phone: { type: "string" } }, required: ["phone"] } },
   { name: "create_customer", description: "Create a new customer record.", input_schema: { type: "object" as const, properties: { name: { type: "string" }, phone: { type: "string" } }, required: ["name", "phone"] } },
   { name: "check_availability", description: "Check real appointment availability for a given date. Always call this before offering a time.", input_schema: { type: "object" as const, properties: { date: { type: "string", description: "YYYY-MM-DD" }, duration_minutes: { type: "number" } }, required: ["date"] } },
-  { name: "book_appointment", description: "Book a real appointment. Only call after confirming date/time/service with the customer, checking availability, and asking the customer for permission to text them a confirmation. Set sms_consent based on their real, actual answer — true only if they clearly agreed, false if they declined or didn't clearly agree.", input_schema: { type: "object" as const, properties: { customer_name: { type: "string" }, phone: { type: "string" }, service_name: { type: "string" }, date: { type: "string" }, time: { type: "string" }, start_iso: { type: "string" }, end_iso: { type: "string" }, sms_consent: { type: "boolean", description: "True only if the customer clearly and verbally agreed to receive a confirmation text. Never default this to true." } }, required: ["customer_name", "phone", "service_name", "date", "time", "start_iso", "end_iso", "sms_consent"] } },
+  { name: "book_appointment", description: "Book a real appointment. Only call after confirming date/time/service with the customer and checking availability.", input_schema: { type: "object" as const, properties: { customer_name: { type: "string" }, phone: { type: "string" }, service_name: { type: "string" }, date: { type: "string" }, time: { type: "string" }, start_iso: { type: "string" }, end_iso: { type: "string" } }, required: ["customer_name", "phone", "service_name", "date", "time", "start_iso", "end_iso"] } },
   { name: "cancel_appointment", description: "Cancel an existing appointment for this customer.", input_schema: { type: "object" as const, properties: { phone: { type: "string" }, date: { type: "string" } }, required: ["phone"] } },
   { name: "reschedule_appointment", description: "Move an existing appointment to a new date/time.", input_schema: { type: "object" as const, properties: { phone: { type: "string" }, new_date: { type: "string" }, new_time: { type: "string" }, old_date: { type: "string" } }, required: ["phone", "new_date", "new_time"] } },
   { name: "escalate_to_human", description: "Log this call for the business owner to follow up on later — like a voicemail. Use for refunds, complaints, anything you can't resolve. Does NOT require anyone to be available now.", input_schema: { type: "object" as const, properties: { reason: { type: "string" }, summary: { type: "string" } }, required: ["reason", "summary"] } },
