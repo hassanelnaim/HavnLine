@@ -147,6 +147,8 @@ export interface DbAppointment {
   time: string;
   status: "confirmed" | "pending" | "cancelled" | "completed" | "no_show";
   created_via: "ai" | "human";
+  sms_consent: boolean;
+  reminder_sent_at: ISODateTime | null;
   created_at: ISODateTime;
 }
 

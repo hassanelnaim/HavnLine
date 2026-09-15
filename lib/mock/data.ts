@@ -100,7 +100,7 @@ export const mockCallMessages: DbCallMessage[] = [
 ];
 
 export const mockAppointments: DbAppointment[] = [
-  { id: "appt_1", business_id: BUSINESS_ID, customer_id: "cust_1", customer_name: "John Smith", phone: "3135550101", service_id: "svc_1", service_name: "Oil Change", date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: "9:00 AM", status: "confirmed", created_via: "ai", created_at: daysAgo(1) },
+  { id: "appt_1", business_id: BUSINESS_ID, customer_id: "cust_1", customer_name: "John Smith", phone: "3135550101", service_id: "svc_1", service_name: "Oil Change", date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: "9:00 AM", status: "confirmed", created_via: "ai", sms_consent: true, reminder_sent_at: null, created_at: daysAgo(1) },
 ];
 
 export const mockKnowledgeItems: DbKnowledgeItem[] = [

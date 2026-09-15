@@ -122,6 +122,7 @@ async function book_appointment(
       time: input.time,
       status: "confirmed",
       created_via: "ai",
+      sms_consent: input.sms_consent,
     })
     .select()
     .single();
@@ -165,6 +166,14 @@ async function cancel_appointment(input: { phone: string; date?: string }, ctx: 
   const { error } = await admin.from("appointments").update({ status: "cancelled" }).eq("id", appt.id);
   if (error) return { success: false, error: error.message };
 
+  // Only ever text if this customer actually consented at booking
+  // time — a decline then shouldn't be silently overridden by a
+  // cancellation notice now.
+  if (appt.sms_consent) {
+    const smsBody = `Your appointment at ${ctx.context.business.name} for ${appt.service_name} on ${appt.date} at ${appt.time} has been cancelled. Call us if you'd like to rebook.`;
+    await smsClient.send(ctx.businessId, input.phone, smsBody);
+  }
+
   return { success: true, cancelled: { service_name: appt.service_name, date: appt.date, time: appt.time } };
 }
 
@@ -182,6 +191,11 @@ async function reschedule_appointment(
   const appt = appointments[0];
   const { error } = await admin.from("appointments").update({ date: input.new_date, time: input.new_time }).eq("id", appt.id);
   if (error) return { success: false, error: error.message };
+
+  if (appt.sms_consent) {
+    const smsBody = `Your appointment at ${ctx.context.business.name} for ${appt.service_name} has been moved to ${input.new_date} at ${input.new_time}. See you then!`;
+    await smsClient.send(ctx.businessId, input.phone, smsBody);
+  }
 
   return { success: true, service_name: appt.service_name, new_date: input.new_date, new_time: input.new_time };
 }

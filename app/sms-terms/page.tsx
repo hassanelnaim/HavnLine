@@ -35,22 +35,35 @@ export default function SmsTermsPage() {
               <li>
                 Immediately after collecting the phone number, the AI <strong>verbally asks for permission, out loud, on the call</strong> — this is a real request, not a notification, and the customer can decline:
                 <div className="mt-2 rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
-                  "Is it okay if I text you a confirmation at that number? You can reply STOP anytime to opt out."
+                  "Is it okay if I text you about this appointment — confirmation, and a reminder the day before? You can reply STOP anytime to opt out."
                 </div>
               </li>
-              <li>The customer verbally agrees ("yes," "sure," "sounds good," etc.) before any message is sent. If the customer declines or doesn't agree, no text is sent to that number at all. This verbal agreement is the Call to Action — there is no web form or checkbox anywhere in this flow, since consent is requested and captured verbally, in real time, on the same call.</li>
-              <li>Only after receiving that verbal "yes" does the call end and trigger <strong>exactly one</strong> automated text message confirming the appointment (business name, service, date, and time).</li>
-              <li>No further messages are sent to that number unless the customer calls and books again, repeating the same verbal consent request described above.</li>
+              <li>The customer verbally agrees ("yes," "sure," "sounds good," etc.) before any message is sent. If the customer declines or doesn't agree, no text is ever sent to that number for that appointment — this is enforced by the system itself, not just a described intention. This verbal agreement is the Call to Action — there is no web form or checkbox anywhere in this flow, since consent is requested and captured verbally, in real time, on the same call.</li>
+              <li>Only after receiving that verbal "yes" is that phone number eligible to receive messages about that specific appointment: one confirmation, one reminder the day before, and an update if the appointment is later cancelled or rescheduled.</li>
+              <li>No unrelated or marketing messages are ever sent. No further messages are sent to that number for a different, new appointment unless the customer calls and books again, repeating the same verbal consent request described above.</li>
             </ol>
           </div>
 
-          <h2 className="font-display text-[18px] font-semibold text-ink">Message frequency</h2>
-          <p>One message per completed booking. Recurring messages only occur if the customer calls back and books again.</p>
+          <h2 className="font-display text-[18px] font-semibold text-ink">Message types and frequency</h2>
+          <p>Every message is tied to a specific appointment the customer booked by phone and consented to be texted about. Up to three messages per appointment:</p>
+          <ul className="ml-5 list-disc space-y-1.5">
+            <li><strong>Confirmation</strong> — sent once, immediately after booking.</li>
+            <li><strong>Reminder</strong> — sent once, the day before the appointment.</li>
+            <li><strong>Update</strong> — sent only if the appointment is cancelled or rescheduled after being booked.</li>
+          </ul>
 
-          <h2 className="font-display text-[18px] font-semibold text-ink">Sample message</h2>
-          <div className="rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
-            You're booked at Riverside Auto &amp; Tire for Oil Change on 08/28/2026 at 2:00 PM. See you then!
-            Msg&amp;data rates may apply. Reply HELP for help, STOP to cancel.
+          <h2 className="font-display text-[18px] font-semibold text-ink">Sample messages</h2>
+          <div className="space-y-2">
+            <div className="rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
+              You're booked at Riverside Auto &amp; Tire for Oil Change on 08/28/2026 at 2:00 PM. See you then!
+              Msg&amp;data rates may apply. Reply HELP for help, STOP to cancel.
+            </div>
+            <div className="rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
+              Reminder: you have an appointment at Riverside Auto &amp; Tire tomorrow for Oil Change at 2:00 PM. Reply STOP to opt out.
+            </div>
+            <div className="rounded-lg border border-border bg-card px-4 py-3 font-mono text-[13px] text-text">
+              Your appointment at Riverside Auto &amp; Tire for Oil Change on 08/28/2026 at 2:00 PM has been cancelled. Call us if you'd like to rebook.
+            </div>
           </div>
 
           <h2 className="font-display text-[18px] font-semibold text-ink">How to opt out</h2>
