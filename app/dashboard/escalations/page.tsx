@@ -1,5 +1,6 @@
 import { AlertTriangle, Phone } from "lucide-react";
 import { getEscalatedCalls } from "@/lib/data/calls";
+import { getBusiness } from "@/lib/data/business";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
  * Overview, or directly from the sidebar.
  */
 export default async function EscalationsPage() {
-  const escalations = await getEscalatedCalls();
+  const [escalations, business] = await Promise.all([getEscalatedCalls(), getBusiness()]);
+  const timezone = business.timezone || "America/New_York";
 
   return (
     <div>
@@ -41,7 +43,7 @@ export default async function EscalationsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right text-[11.5px] text-text-faint">{formatDateTime(call.started_at)}</div>
+                <div className="text-right text-[11.5px] text-text-faint">{formatDateTime(call.started_at, timezone)}</div>
               </CardContent>
             </Card>
           ))}
