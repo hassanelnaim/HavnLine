@@ -1,3 +1,4 @@
+import { BusinessActions } from "@/components/admin/business-actions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Bot, DollarSign, Phone, CalendarCheck } from "lucide-react";
@@ -37,8 +38,17 @@ export default async function PlatformBusinessDetailPage({ params }: { params: {
           <h1 className="font-display text-[24px] font-semibold text-ink">{business.name}</h1>
           <p className="mt-1 text-[13px] text-text-muted">{business.phone || "No phone"} · Joined {formatDate(business.created_at)}</p>
         </div>
-        <StatusEditor businessId={business.id} currentStatus={business.subscription_status} />
+                <div className="flex items-center gap-3">
+          <StatusEditor businessId={business.id} currentStatus={business.subscription_status} />
+          <BusinessActions businessId={business.id} businessName={business.name} isSuspended={business.is_suspended} />
+        </div>
       </div>
+
+      {business.is_suspended && (
+        <div className="mt-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-[13px] text-danger">
+          <strong>Suspended</strong> {business.suspended_reason && `— ${business.suspended_reason}`}
+        </div>
+      )}
 
       <Tabs defaultValue="overview" className="mt-6">
         <TabsList>
