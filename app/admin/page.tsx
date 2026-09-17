@@ -1,3 +1,4 @@
+import { getTotalSpentThisMonth } from "@/app/actions/cost-summary";
 import Link from "next/link";
 import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle, MoreVertical } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
