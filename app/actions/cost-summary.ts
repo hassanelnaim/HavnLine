@@ -1,5 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/**
+ * Real, honest total — actual AI usage costs (Anthropic + ElevenLabs,
+ * logged per real event) plus Twilio cost estimated from real call
+ * minutes, summed across every business, for the current calendar
+ * month only.
+ */
 export async function getTotalSpentThisMonth(): Promise<number> {
   const admin = createAdminClient();
   const startOfMonth = new Date();
@@ -13,7 +19,7 @@ export async function getTotalSpentThisMonth(): Promise<number> {
 
   const aiCostCents = (usageRecords || []).reduce((sum, r) => sum + Number(r.estimated_cost_cents), 0);
   const totalMinutes = (calls || []).reduce((sum, c) => sum + (c.duration_seconds || 0), 0) / 60;
-  const twilioCostCents = totalMinutes * 4.85; // ~$0.0485/min, same rate used elsewhere
+  const twilioCostCents = totalMinutes * 4.85; // ~$0.0485/min, same rate used elsewhere in the app
 
   return (aiCostCents + twilioCostCents) / 100;
 }
