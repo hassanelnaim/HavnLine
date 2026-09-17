@@ -46,7 +46,7 @@ export default async function PlatformAdminPage() {
       <h1 className="font-display text-[24px] font-semibold text-ink">Command Center</h1>
       <p className="mt-1 text-[13.5px] text-text-muted">Real-time visibility across every business on HavnLine.</p>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between"><span className="text-[12.5px] text-text-muted">Total businesses</span><Building2 className="h-4 w-4 text-brand" /></div>
           <div className="mt-2 font-display text-[28px] font-semibold text-ink">{rows.length}</div>
@@ -69,11 +69,6 @@ export default async function PlatformAdminPage() {
           <div className="flex items-center justify-between"><span className="text-[12.5px] text-text-muted">Spent this month</span><DollarSign className="h-4 w-4 text-danger" /></div>
           <div className="mt-2 font-display text-[28px] font-semibold text-ink">${totalSpentThisMonth.toFixed(2)}</div>
           <div className="mt-1 text-[11.5px] text-text-faint">Real AI + Twilio usage across all businesses</div>
-        </div>
-      </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center justify-between"><span className="text-[12.5px] text-text-muted">Appointments booked</span><CalendarCheck className="h-4 w-4 text-success" /></div>
-          <div className="mt-2 font-display text-[28px] font-semibold text-ink">{totalAppointments || 0}</div>
         </div>
       </div>
 
