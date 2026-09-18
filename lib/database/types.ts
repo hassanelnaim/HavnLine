@@ -106,6 +106,8 @@ export interface DbCustomer {
   phone: string;
   email: string | null;
   notes: string | null;
+  is_blocked: boolean;
+  blocked_at: ISODateTime | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }

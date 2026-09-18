@@ -1,6 +1,6 @@
 import { getTotalSpentThisMonth } from "@/app/actions/cost-summary";
 import Link from "next/link";
-import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle, MoreVertical } from "lucide-react";
+import { Building2, PhoneCall, CalendarCheck, DollarSign, TrendingUp, AlertTriangle, ChevronRight } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate } from "@/lib/format";
 import { getAllReviewsForModeration } from "@/lib/data/reviews";
@@ -104,15 +104,16 @@ export default async function PlatformAdminPage() {
             </thead>
             <tbody>
               {rows.map((b) => (
-                <tr key={b.id} className="border-b border-border-soft last:border-0">
-                  <td className="py-3 pr-4 font-medium text-text">{b.name}</td>
-                  <td className="py-3 pr-4 font-mono text-text-muted">{b.phone || "—"}</td>
-                  <td className="py-3 pr-4"><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[b.subscription_status] || STATUS_STYLES.none}`}>{b.subscription_status}</span></td>
-                  <td className="py-3 pr-4 text-text-muted">{formatDate(b.created_at)}</td>
+                <tr key={b.id} className="group relative border-b border-border-soft last:border-0">
+                  <td className="py-3 pr-4 font-medium text-text">
+                    <Link href={`/admin/businesses/${b.id}`} className="absolute inset-0" aria-label={`Inspect ${b.name}`} />
+                    <span className="relative group-hover:text-brand-dark">{b.name}</span>
+                  </td>
+                  <td className="py-3 pr-4 font-mono text-text-muted"><span className="relative">{b.phone || "—"}</span></td>
+                  <td className="py-3 pr-4"><span className={`relative rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[b.subscription_status] || STATUS_STYLES.none}`}>{b.subscription_status}</span></td>
+                  <td className="py-3 pr-4 text-text-muted"><span className="relative">{formatDate(b.created_at)}</span></td>
                   <td className="py-3 pr-4 text-right">
-                    <Link href={`/admin/businesses/${b.id}`} className="inline-flex text-text-faint hover:text-text" aria-label="Inspect business">
-                      <MoreVertical className="h-4 w-4" />
-                    </Link>
+                    <ChevronRight className="relative inline h-4 w-4 text-text-faint group-hover:text-text" />
                   </td>
                 </tr>
               ))}
