@@ -26,6 +26,7 @@ export interface OnboardingDraft {
   phone: string;
   website: string;
   description: string;
+  timezone: string;
 
   hours: OnboardingHoursDraft[];
 
@@ -53,6 +54,18 @@ export const DEFAULT_RESPONSIBILITIES: AiResponsibilities = {
   escalate_to_human: true,
 };
 
+// Best-effort guess at the signer-upper's own timezone, used only to
+// pre-select a sensible default in the dropdown — never trusted as the
+// final value. The business owner can always change it; this just saves
+// most people a click.
+function detectBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+  } catch {
+    return "America/New_York";
+  }
+}
+
 const defaultDraft: OnboardingDraft = {
   businessId: null,
   businessName: "",
@@ -61,6 +74,7 @@ const defaultDraft: OnboardingDraft = {
   phone: "",
   website: "",
   description: "",
+  timezone: "America/New_York",
   hours: WEEKDAYS.map((weekday, i) => ({
     weekday,
     isOpen: i < 6,
@@ -86,6 +100,15 @@ const OnboardingContext = React.createContext<OnboardingContextValue | null>(nul
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = React.useState<OnboardingDraft>(defaultDraft);
+
+  // Runs once, client-side only (so it never affects server rendering),
+  // to swap the hardcoded "America/New_York" default for the actual
+  // timezone the signer-upper's own browser reports — still just a
+  // pre-fill, still fully editable on the business-info step.
+  React.useEffect(() => {
+    const detected = detectBrowserTimezone();
+    setDraft((prev) => (prev.timezone === defaultDraft.timezone ? { ...prev, timezone: detected } : prev));
+  }, []);
 
   const update = React.useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));

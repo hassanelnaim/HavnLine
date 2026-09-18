@@ -10,6 +10,19 @@ import { Label } from "@/components/ui/label";
 
 const BUSINESS_TYPES = ["Auto Repair", "Salon & Spa", "Dental Practice", "Medical Practice", "Law Firm", "Home Services", "Restaurant", "Other"];
 
+// Curated rather than the full IANA list — every real timezone a small
+// US-based business is actually in, labeled the way a business owner
+// thinks about it rather than by raw zone id.
+const TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Phoenix", label: "Arizona (no DST)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+];
+
 export default function BusinessInfoStep() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
@@ -22,7 +35,7 @@ export default function BusinessInfoStep() {
     setSaving(true);
     setError(null);
     const result = await createBusinessDraftAction({
-      businessName: draft.businessName, businessType: draft.businessType, address: draft.address, phone: draft.phone, description: draft.description,
+      businessName: draft.businessName, businessType: draft.businessType, address: draft.address, phone: draft.phone, description: draft.description, timezone: draft.timezone,
     });
     setSaving(false);
 
@@ -56,6 +69,13 @@ export default function BusinessInfoStep() {
         <div>
           <Label htmlFor="phone">Business phone</Label>
           <Input id="phone" className="mt-1.5" placeholder="(845) 555-0142" value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
+        </div>
+        <div>
+          <Label htmlFor="timezone">Timezone</Label>
+          <select id="timezone" className="mt-1.5 flex h-9 w-full rounded-lg border border-border bg-card px-3 text-[13.5px] text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30" value={draft.timezone} onChange={(e) => update({ timezone: e.target.value })}>
+            {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+          </select>
+          <p className="mt-1.5 text-[12px] text-text-faint">We pre-selected this from your browser — double check it's where your business actually operates, since your AI receptionist uses it to know your real business hours.</p>
         </div>
         <div>
           <Label htmlFor="description">Business description</Label>

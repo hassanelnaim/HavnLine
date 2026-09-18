@@ -16,6 +16,7 @@ export async function createBusinessDraftAction(input: {
   address: string;
   phone: string;
   description: string;
+  timezone: string;
 }): Promise<CreateBusinessDraftResult> {
   if (!isSupabaseConfigured()) return { success: true, demoMode: true };
 
@@ -35,6 +36,7 @@ export async function createBusinessDraftAction(input: {
       address: input.address || null,
       phone: input.phone || null,
       description: input.description || null,
+      timezone: input.timezone || "America/New_York",
       onboarding_step: "hours",
     })
     .select()
