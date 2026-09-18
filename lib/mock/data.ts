@@ -81,11 +81,11 @@ export const mockVoiceConfig: DbAiVoiceConfig = {
 };
 
 export const mockCustomers: DbCustomer[] = [
-  { id: "cust_1", business_id: BUSINESS_ID, name: "John Smith", phone: "3135550101", email: null, notes: null, created_at: daysAgo(10), updated_at: daysAgo(10) },
-  { id: "cust_2", business_id: BUSINESS_ID, name: "Maria Garcia", phone: "3135550102", email: null, notes: null, created_at: daysAgo(8), updated_at: daysAgo(8) },
-  { id: "cust_3", business_id: BUSINESS_ID, name: "David Lee", phone: "3135550103", email: null, notes: null, created_at: daysAgo(5), updated_at: daysAgo(5) },
-  { id: "cust_4", business_id: BUSINESS_ID, name: "Emily Chen", phone: "3135550104", email: null, notes: null, created_at: daysAgo(3), updated_at: daysAgo(3) },
-  { id: "cust_5", business_id: BUSINESS_ID, name: "Robert Johnson", phone: "3135550105", email: null, notes: null, created_at: daysAgo(1), updated_at: daysAgo(1) },
+  { id: "cust_1", business_id: BUSINESS_ID, name: "John Smith", phone: "3135550101", email: null, notes: null, is_blocked: false, blocked_at: null, created_at: daysAgo(10), updated_at: daysAgo(10) },
+  { id: "cust_2", business_id: BUSINESS_ID, name: "Maria Garcia", phone: "3135550102", email: null, notes: null, is_blocked: false, blocked_at: null, created_at: daysAgo(8), updated_at: daysAgo(8) },
+  { id: "cust_3", business_id: BUSINESS_ID, name: "David Lee", phone: "3135550103", email: null, notes: null, is_blocked: false, blocked_at: null, created_at: daysAgo(5), updated_at: daysAgo(5) },
+  { id: "cust_4", business_id: BUSINESS_ID, name: "Emily Chen", phone: "3135550104", email: null, notes: null, is_blocked: false, blocked_at: null, created_at: daysAgo(3), updated_at: daysAgo(3) },
+  { id: "cust_5", business_id: BUSINESS_ID, name: "Robert Johnson", phone: "3135550105", email: null, notes: null, is_blocked: false, blocked_at: null, created_at: daysAgo(1), updated_at: daysAgo(1) },
 ];
 
 export const mockCalls: DbCall[] = [
